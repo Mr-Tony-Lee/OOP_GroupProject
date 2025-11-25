@@ -12,9 +12,11 @@ def print_success_rate(rewards_per_episode):
     print(f"✅ Success Rate: {success_rate:.2f}% ({int(success_count)} / {total_episodes} episodes)")
     return success_rate
 
-def run(episodes, is_training=True, render=False):
+def run(episodes, is_training=True, render=False, decay_rate = 0.5, min_exploration = 0, seed = 42 ):
 
-    env = gym.make('FrozenLake-v1', map_name="8x8", is_slippery=True, render_mode='human' if render else None)
+    # env = gym.make('FrozenLake-v1', map_name="8x8", is_slippery=True, render_mode='human' if render else None)
+    # env = gym.make('FrozenLake-v1', map_name="8x8", is_slippery=True, render_mode='ansi' if render else None)
+    env = gym.make("FrozenLake-v1", render_mode="ansi")
 
     if(is_training):
         q = np.zeros((env.observation_space.n, env.action_space.n)) # init a 64 x 4 array
@@ -23,16 +25,19 @@ def run(episodes, is_training=True, render=False):
         q = pickle.load(f)
         f.close()
 
-    learning_rate_a = 0.9 # alpha or learning rate
+    learning_rate_a = 0.8 # alpha or learning rate
+    learning_rate_decay = 0.99
+    min_learning_rate = 0.001
     discount_factor_g = 0.9 # gamma or discount rate. Near 0: more weight/reward placed on immediate state. Near 1: more on future state.
     epsilon = 1         # 1 = 100% random actions
-    epsilon_decay_rate = 0.0001        # epsilon decay rate. 1/0.0001 = 10,000
-    rng = np.random.default_rng()   # random number generator
+    epsilon_decay_rate = 1/(episodes*decay_rate)     # epsilon decay rate. 1/0.0001 = 10,000
+    min_exploration_rate = min_exploration
+    rng = np.random.default_rng(seed)   # random number generator
 
     rewards_per_episode = np.zeros(episodes)
 
     for i in range(episodes):
-        state = env.reset()[0]  # states: 0 to 63, 0=top left corner,63=bottom right corner
+        state = env.reset(seed = seed+i)[0]  # states: 0 to 63, 0=top left corner,63=bottom right corner
         terminated = False      # True when fall in hole or reached goal
         truncated = False       # True when actions > 200
 
@@ -51,10 +56,11 @@ def run(episodes, is_training=True, render=False):
 
             state = new_state
 
-        epsilon = max(epsilon - epsilon_decay_rate, 0)
+        epsilon = max(epsilon - epsilon_decay_rate, min_exploration_rate)
 
-        if(epsilon==0):
-            learning_rate_a = 0.0001
+        if(epsilon==min_exploration_rate):
+            # learning_rate_a = 0.0001
+            learning_rate_a = max(learning_rate_a*learning_rate_decay, min_learning_rate )
 
         if reward == 1:
             rewards_per_episode[i] = 1
@@ -76,6 +82,14 @@ def run(episodes, is_training=True, render=False):
         f.close()
 
 if __name__ == '__main__':
-    # run(15000, is_training=True, render=False)
-
-    run(10, is_training=False, render=True)
+    rate = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]
+    final_rate = 0.65
+    min_explo = [0,0.025,0.05,0.75,0.10]
+    final_explo = 0.025
+    # for each_rate in rate:
+    #     for each_min_explo in min_explo:
+    #         print(f"Now rate : {each_rate}, Now min explo : {each_min_explo}")
+    #         run(15000, is_training=True, render=False, decay_rate = each_rate, min_exploration = each_min_explo)
+    #         run(1000, is_training=False, render=True, decay_rate = each_rate, min_exploration = each_min_explo)
+    run(15000, is_training=True, render=False, decay_rate = final_rate, min_exploration = final_explo)
+    run(1000, is_training=False, render=True, decay_rate = final_rate, min_exploration = final_explo)
