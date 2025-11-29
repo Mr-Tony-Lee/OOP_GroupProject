@@ -1,8 +1,7 @@
 import gymnasium as gym
-import dungeon_env
 from agent import QLearningAgent
 import matplotlib.pyplot as plt
-import numpy as np
+import os
 
 def train():
     # 建立環境 (不開啟 render 以加快訓練速度)
@@ -21,7 +20,9 @@ def train():
     rewards_history = []
 
     # 開啟 log 檔案
-    with open("training_log.txt", "w") as log_file, open("event_log.txt", "w") as event_file:
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+    with open("logs/training_log.txt", "w") as log_file, open("logs/event_log.txt", "w") as event_file:
         log_file.write("Start Training...\n")
         event_file.write("Episode, Event\n")
         print("Start Training... (Logging to training_log.txt and event_log.txt)")
@@ -56,15 +57,18 @@ def train():
         log_file.write("Training Finished!\n")
         print("Training Finished!")
     
-    agent.save("q_table.pkl")
+    if not os.path.exists("result"):
+        os.makedirs("result")
+    agent.save("result/q_table.pkl")
     
     # 繪製訓練曲線
     plt.plot(rewards_history)
     plt.title("Training Progress")
     plt.xlabel("Episode")
     plt.ylabel("Total Reward")
-    plt.savefig("training_curve.png")
-    print("Training curve saved to training_curve.png")
+    plt.savefig("result/training_curve.png")
+    
+    print("Training curve saved to result/training_curve.png")
     
     env.close()
 
@@ -74,7 +78,7 @@ def test():
     agent = QLearningAgent(env.action_space, epsilon=0.0) # Epsilon=0 代表完全不探索，只選最好的
     
     try:
-        agent.load("q_table.pkl")
+        agent.load("result/q_table.pkl")
     except FileNotFoundError:
         print("No trained model found. Please train first.")
         return
