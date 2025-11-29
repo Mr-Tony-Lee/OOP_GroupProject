@@ -93,13 +93,18 @@ class FrozenLakeAgent:
                 new_state, reward, terminated, truncated,_ = env.step(action)
 
                 if self.is_training:
-                    target = reward
-                    if not terminated:
-                        target += self.discount_factor_g * np.max(self.q[new_state,:])
-                    # 原本 self.q[state,action] = self.q[state,action] + self.learning_rate_a * ( reward + self.discount_factor_g * np.max(self.q[new_state,:]) - self.q[state,action] )
-                    # 當 terminated 為 True 時，目標值 (Target) 應該只等於當下的 reward (掉洞是 0，到達目標是 1)，不再加上未來的預期獎勵。這能讓 Agent 更明確地學會避開冰洞。
+                    # 利用轉移機率計算總期望值 ( 算小作弊? )
+                    expected_target = 0
+                    transitions = env.unwrapped.P[state][action]
+                    
+                    for prob, next_s, r, term in transitions:
+                        target = r
+                        if not term:
+                            target += self.discount_factor_g * np.max(self.q[next_s, :])
+                        expected_target += prob * target
+
                     self.q[state,action] = self.q[state,action] + self.learning_rate_a * (
-                        target - self.q[state,action]
+                        expected_target - self.q[state,action]
                     )
 
                 state = new_state
