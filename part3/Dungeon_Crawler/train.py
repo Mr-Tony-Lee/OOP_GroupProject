@@ -12,36 +12,50 @@ def train():
     agent = QLearningAgent(
         env.action_space,
         learning_rate=0.1,
-        discount_factor=0.9,
+        discount_factor=0.95, # 提高一點，因為路徑變長了
         epsilon=1.0,
-        epsilon_decay=0.995 # 每次 episode 結束後 epsilon * 0.995
+        epsilon_decay=0.999 # 減緩衰減速度，讓它有更多時間探索 (因為地圖變大)
     )
 
-    episodes = 1000
+    episodes = 1000 # 增加訓練回合數
     rewards_history = []
 
-    print("Start Training...")
-    for episode in range(episodes):
-        state, info = env.reset()
-        total_reward = 0
-        done = False
-        truncated = False
-
-        while not (done or truncated):
-            action = agent.get_action(state)
-            next_state, reward, done, truncated, info = env.step(action)
-            
-            agent.learn(state, action, reward, next_state, done)
-            
-            state = next_state
-            total_reward += reward
-
-        rewards_history.append(total_reward)
+    # 開啟 log 檔案
+    with open("training_log.txt", "w") as log_file, open("event_log.txt", "w") as event_file:
+        log_file.write("Start Training...\n")
+        event_file.write("Episode, Event\n")
+        print("Start Training... (Logging to training_log.txt and event_log.txt)")
         
-        if (episode + 1) % 100 == 0:
-            print(f"Episode {episode+1}/{episodes}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.2f}")
+        for episode in range(episodes):
+            state, info = env.reset()
+            total_reward = 0
+            done = False
+            truncated = False
 
-    print("Training Finished!")
+            while not (done or truncated):
+                action = agent.get_action(state)
+                next_state, reward, done, truncated, info = env.step(action)
+                
+                # Log events
+                if "events" in info:
+                    for event in info["events"]:
+                        event_file.write(f"{episode+1}, {event}\n")
+
+                agent.learn(state, action, reward, next_state, done)
+                
+                state = next_state
+                total_reward += reward
+
+            rewards_history.append(total_reward)
+            event_file.flush() # 確保寫入檔案
+            if (episode + 1) % 100 == 0:
+                log_msg = f"Episode {episode+1}/{episodes}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.2f}\n"
+                log_file.write(log_msg)
+                log_file.flush() # 確保寫入檔案
+
+        log_file.write("Training Finished!\n")
+        print("Training Finished!")
+    
     agent.save("q_table.pkl")
     
     # 繪製訓練曲線
@@ -76,10 +90,6 @@ def test():
         next_state, reward, done, truncated, info = env.step(action)
         state = next_state
         total_reward += reward
-        
-        # 稍微慢一點才看得到
-        import time
-        time.sleep(0.2)
 
     print(f"Test Finished. Total Reward: {total_reward}")
     env.close()

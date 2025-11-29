@@ -61,34 +61,54 @@ class DungeonCrawlerEnv(gym.Env):
         
         prev_score = self.game.player.score
         prev_hp = self.game.player.hp
+        prev_row, prev_col = self.game.player.row, self.game.player.col
+        prev_has_key = self.game.player.has_key
         
+        # 預先檢查是否嘗試開門
+        target_r, target_c = self.game.player.move(dg.Direction(action), self.game.grid_rows, self.game.grid_cols)
+        target_obj = self.game.grid[target_r][target_c]
+        is_door = isinstance(target_obj, dg.Door)
+
         terminated = self.game.perform_action(dg.Direction(action))
         
         # 計算 Reward
         reward = -0.1 # 每一步扣一點分，鼓勵盡快完成
+        events = []
+
+        # 0. 撞牆懲罰 (位置沒變且沒結束)
+        if not terminated and self.game.player.row == prev_row and self.game.player.col == prev_col:
+            reward -= 0.5 # 撞牆扣分
         
-        # 根據遊戲狀態變化給予額外獎勵
         # 1. 拿到寶藏 (遊戲結束且勝利)
         if terminated and self.game.player.hp > 0:
             reward += 100
+            events.append("won")
         
         # 2. 踩到陷阱 (扣血)
         hp_loss = prev_hp - self.game.player.hp
         if hp_loss > 0:
             reward -= hp_loss # 扣多少血就扣多少分
             
-        # 3. 撿到鑰匙 (雖然 game 裡面沒有直接回傳，但我們可以檢查 has_key)
-        # 這裡比較難偵測 "剛撿到"，除非我們在 game 裡加 flag
-        # 簡單做法：如果這一布導致 has_key 變成 True，給獎勵
-        # (需要紀錄上一步的 has_key，這裡先省略，假設 AI 會自己學)
+        # 3. 撿到鑰匙 (給予大獎勵)
+        if not prev_has_key and self.game.player.has_key:
+            reward += 50 # 鼓勵去撿鑰匙
+            events.append("found_key")
+            # print("Reward: Found Key! (+50)")
+
+        # 4. 開門 (給予獎勵)
+        if is_door and self.game.player.row == target_r and self.game.player.col == target_c:
+            reward += 10 # 開門獎勵
+            events.append("opened_door")
+            # print("Reward: Opened Door! (+10)")
 
         # 檢查是否死亡 (HP <= 0)
         if self.game.player.hp <= 0:
             terminated = True
             reward -= 50 # 死亡懲罰
+            events.append("died")
 
         obs = self._get_obs()
-        info = {}
+        info = {"events": events}
 
         if self.render_mode == 'human':
             self.render()
