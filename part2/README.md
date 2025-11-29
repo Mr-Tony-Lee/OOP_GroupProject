@@ -1,9 +1,11 @@
 # 資料夾說明
 
+```
 part2/
 |-- Class_version/      # 使用類別(Class)實作的版本( 我覺得太醜把它改成class的版本，然後改的內容都在裡面)
 |-- Origin/             # 原始程式碼版本(一開始老師給的)
 |-- README.md           # 資料夾說明
+```
 
 ## Detail
 
@@ -26,5 +28,5 @@ part2/
         - 8x8 slippery 穩定在 64% 左右
         
 ### Origin
-    - Frozen_lake_Explanation.md : 說明文件，介紹 Frozen Lake 問題及 Q-Learning 演算法的基本概念、使用建議、輸出檔案說明及常見問題解答。
-    - frozen_lake.py : 一開始老師給的，使用 Q-Learning 演算法解決 Frozen Lake 問題的原始程式碼版本。
+- Frozen_lake_Explanation.md : 說明文件，介紹 Frozen Lake 問題及 Q-Learning 演算法的基本概念、使用建議、輸出檔案說明及常見問題解答。
+- frozen_lake.py : 一開始老師給的，使用 Q-Learning 演算法解決 Frozen Lake 問題的原始程式碼版本。
