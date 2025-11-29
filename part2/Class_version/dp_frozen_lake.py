@@ -90,5 +90,8 @@ class FrozenLakeDP:
         self.print_success_rate(rewards_per_episode)
 
 if __name__ == '__main__':
-    agent = FrozenLakeDP(map_name="8x8", is_slippery=True)
-    agent.run_evaluation(episodes=10000)
+    agent_4 = FrozenLakeDP(map_name="4x4", is_slippery=True)
+    agent_4.run_evaluation(episodes=10000)
+
+    agent_8 = FrozenLakeDP(map_name="8x8", is_slippery=True)
+    agent_8.run_evaluation(episodes=10000)

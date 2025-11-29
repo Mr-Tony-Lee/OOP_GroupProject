@@ -2,6 +2,7 @@ import gymnasium as gym
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+import os
 
 class FrozenLakeAgent:
     def __init__(self, map_name="8x8", episodes=15000, is_training=True, is_slippery=True, render_mode = "ansi"):
@@ -37,7 +38,9 @@ class FrozenLakeAgent:
             # self.q = np.zeros((env.observation_space.n, env.action_space.n)) 
             self.q = np.random.uniform(low=0.0, high=0.001, size=(env.observation_space.n, env.action_space.n))
         else:
-            f = open(f'frozen_lake{self.map_name}.pkl', 'rb')
+            if not os.path.exists(self.map_name):
+                os.makedirs(self.map_name)
+            f = open(f'{self.map_name}/frozen_lake{self.map_name}.pkl', 'rb')
             self.q = pickle.load(f)
             f.close()
 
@@ -62,11 +65,12 @@ class FrozenLakeAgent:
         plt.xlabel('Episodes')
         plt.ylabel('Sum of Rewards (Last 100 Episodes)') 
         plt.title('Frozen Lake Rewards over Episodes')
-        
+        if not os.path.exists(self.map_name):
+                os.makedirs(self.map_name)
         if self.is_training == True :
-            plt.savefig(f'frozen_lake_Training{self.map_name}.png')
+            plt.savefig(f'{self.map_name}/frozen_lake_Training{self.map_name}.png')
         else:
-            plt.savefig(f'frozen_lake_Evaluation{self.map_name}.png')
+            plt.savefig(f'{self.map_name}/frozen_lake_Evaluation{self.map_name}.png')
             
         plt.close() # 存檔後關閉圖表，釋放記憶體
 
@@ -125,12 +129,24 @@ class FrozenLakeAgent:
             print(self.print_success_rate(rewards_per_episode))
 
         if self.is_training:
-            f = open(f"frozen_lake{self.map_name}.pkl","wb")
+            if not os.path.exists(self.map_name):
+                print("folder didn't exist")
+            f = open(f"{self.map_name}/frozen_lake{self.map_name}.pkl","wb")
             pickle.dump(self.q, f)
             f.close()
 
 if __name__ == '__main__':
     
+    # Train
+    print("Training...")
+    agent = FrozenLakeAgent(map_name="4x4", episodes=15000, is_training=True, is_slippery=True, render_mode="ansi")
+    agent.run()
+    
+    # Evaluate
+    print("\nEvaluating...")
+    agent = FrozenLakeAgent(map_name="4x4", episodes=1000, is_training=False, is_slippery=True, render_mode="ansi")
+    agent.run()
+
     # Train
     print("Training...")
     agent = FrozenLakeAgent(map_name="8x8", episodes=15000, is_training=True, is_slippery=True, render_mode="ansi")
