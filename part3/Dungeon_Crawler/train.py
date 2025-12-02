@@ -65,7 +65,7 @@ def train(agent_type="DQN"):
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
-    episodes = 5000 
+    episodes = 2000 
     rewards_history = []
     best_reward = -float('inf')
 
@@ -204,5 +204,5 @@ if __name__ == "__main__":
     # AGENT_TYPE = "DQN" 
     AGENT_TYPE = "QLearning" 
     
-    train(AGENT_TYPE)
-    # test(AGENT_TYPE)
+    # train(AGENT_TYPE)
+    test(AGENT_TYPE)

@@ -1,102 +1,42 @@
 Start Training...
-Episode 50/5000, Total Reward: -171.90, Epsilon: 0.95
-Episode 100/5000, Total Reward: -183.50, Epsilon: 0.90
-Episode 150/5000, Total Reward: -129.70, Epsilon: 0.86
-Episode 200/5000, Total Reward: -164.70, Epsilon: 0.82
-Episode 250/5000, Total Reward: -126.40, Epsilon: 0.78
-Episode 300/5000, Total Reward: -173.80, Epsilon: 0.74
-Episode 350/5000, Total Reward: -130.50, Epsilon: 0.70
-Episode 400/5000, Total Reward: -156.90, Epsilon: 0.67
-Episode 450/5000, Total Reward: -137.30, Epsilon: 0.64
-Episode 500/5000, Total Reward: -119.50, Epsilon: 0.61
-Episode 550/5000, Total Reward: -122.10, Epsilon: 0.58
-Episode 600/5000, Total Reward: -123.70, Epsilon: 0.55
-Episode 650/5000, Total Reward: -161.30, Epsilon: 0.52
-Episode 700/5000, Total Reward: -149.80, Epsilon: 0.50
-Episode 750/5000, Total Reward: -207.40, Epsilon: 0.47
-Episode 800/5000, Total Reward: -154.50, Epsilon: 0.45
-Episode 850/5000, Total Reward: -107.50, Epsilon: 0.43
-Episode 900/5000, Total Reward: -176.90, Epsilon: 0.41
-Episode 950/5000, Total Reward: 151.00, Epsilon: 0.39
-Episode 1000/5000, Total Reward: -105.40, Epsilon: 0.37
-Episode 1050/5000, Total Reward: 151.40, Epsilon: 0.35
-Episode 1100/5000, Total Reward: 157.00, Epsilon: 0.33
-Episode 1150/5000, Total Reward: 157.20, Epsilon: 0.32
-Episode 1200/5000, Total Reward: -100.50, Epsilon: 0.30
-Episode 1250/5000, Total Reward: 97.60, Epsilon: 0.29
-Episode 1300/5000, Total Reward: 110.80, Epsilon: 0.27
-Episode 1350/5000, Total Reward: -96.70, Epsilon: 0.26
-Episode 1400/5000, Total Reward: 157.40, Epsilon: 0.25
-Episode 1450/5000, Total Reward: -119.80, Epsilon: 0.23
-Episode 1500/5000, Total Reward: 153.80, Epsilon: 0.22
-Episode 1550/5000, Total Reward: -122.30, Epsilon: 0.21
-Episode 1600/5000, Total Reward: 75.20, Epsilon: 0.20
-Episode 1650/5000, Total Reward: 75.20, Epsilon: 0.19
-Episode 1700/5000, Total Reward: 156.20, Epsilon: 0.18
-Episode 1750/5000, Total Reward: 137.40, Epsilon: 0.17
-Episode 1800/5000, Total Reward: 138.40, Epsilon: 0.17
-Episode 1850/5000, Total Reward: 77.00, Epsilon: 0.16
-Episode 1900/5000, Total Reward: 97.00, Epsilon: 0.15
-Episode 1950/5000, Total Reward: 158.40, Epsilon: 0.14
-Episode 2000/5000, Total Reward: 138.60, Epsilon: 0.14
-Episode 2050/5000, Total Reward: 137.00, Epsilon: 0.13
-Episode 2100/5000, Total Reward: 159.40, Epsilon: 0.12
-Episode 2150/5000, Total Reward: 138.40, Epsilon: 0.12
-Episode 2200/5000, Total Reward: 59.40, Epsilon: 0.11
-Episode 2250/5000, Total Reward: 157.60, Epsilon: 0.11
-Episode 2300/5000, Total Reward: 139.60, Epsilon: 0.10
-Episode 2350/5000, Total Reward: 159.40, Epsilon: 0.10
-Episode 2400/5000, Total Reward: 119.60, Epsilon: 0.09
-Episode 2450/5000, Total Reward: 138.80, Epsilon: 0.09
-Episode 2500/5000, Total Reward: 157.60, Epsilon: 0.08
-Episode 2550/5000, Total Reward: 158.60, Epsilon: 0.08
-Episode 2600/5000, Total Reward: 159.00, Epsilon: 0.07
-Episode 2650/5000, Total Reward: 118.80, Epsilon: 0.07
-Episode 2700/5000, Total Reward: 158.20, Epsilon: 0.07
-Episode 2750/5000, Total Reward: 159.40, Epsilon: 0.06
-Episode 2800/5000, Total Reward: 118.40, Epsilon: 0.06
-Episode 2850/5000, Total Reward: 159.00, Epsilon: 0.06
-Episode 2900/5000, Total Reward: 118.80, Epsilon: 0.05
-Episode 2950/5000, Total Reward: 159.60, Epsilon: 0.05
-Episode 3000/5000, Total Reward: 138.80, Epsilon: 0.05
-Episode 3050/5000, Total Reward: 159.60, Epsilon: 0.05
-Episode 3100/5000, Total Reward: 139.40, Epsilon: 0.04
-Episode 3150/5000, Total Reward: 159.60, Epsilon: 0.04
-Episode 3200/5000, Total Reward: 98.40, Epsilon: 0.04
-Episode 3250/5000, Total Reward: 159.60, Epsilon: 0.04
-Episode 3300/5000, Total Reward: 159.60, Epsilon: 0.04
-Episode 3350/5000, Total Reward: 77.20, Epsilon: 0.04
-Episode 3400/5000, Total Reward: 139.00, Epsilon: 0.03
-Episode 3450/5000, Total Reward: 139.00, Epsilon: 0.03
-Episode 3500/5000, Total Reward: 119.00, Epsilon: 0.03
-Episode 3550/5000, Total Reward: 139.40, Epsilon: 0.03
-Episode 3600/5000, Total Reward: 139.60, Epsilon: 0.03
-Episode 3650/5000, Total Reward: 159.00, Epsilon: 0.03
-Episode 3700/5000, Total Reward: 159.60, Epsilon: 0.02
-Episode 3750/5000, Total Reward: 159.60, Epsilon: 0.02
-Episode 3800/5000, Total Reward: 139.60, Epsilon: 0.02
-Episode 3850/5000, Total Reward: -125.10, Epsilon: 0.02
-Episode 3900/5000, Total Reward: 154.00, Epsilon: 0.02
-Episode 3950/5000, Total Reward: 77.80, Epsilon: 0.02
-Episode 4000/5000, Total Reward: 159.60, Epsilon: 0.02
-Episode 4050/5000, Total Reward: 139.00, Epsilon: 0.02
-Episode 4100/5000, Total Reward: 139.00, Epsilon: 0.02
-Episode 4150/5000, Total Reward: 119.00, Epsilon: 0.02
-Episode 4200/5000, Total Reward: 139.00, Epsilon: 0.01
-Episode 4250/5000, Total Reward: 97.80, Epsilon: 0.01
-Episode 4300/5000, Total Reward: 139.60, Epsilon: 0.01
-Episode 4350/5000, Total Reward: 159.60, Epsilon: 0.01
-Episode 4400/5000, Total Reward: 159.40, Epsilon: 0.01
-Episode 4450/5000, Total Reward: 159.60, Epsilon: 0.01
-Episode 4500/5000, Total Reward: 119.60, Epsilon: 0.01
-Episode 4550/5000, Total Reward: -102.90, Epsilon: 0.01
-Episode 4600/5000, Total Reward: 98.40, Epsilon: 0.01
-Episode 4650/5000, Total Reward: 159.60, Epsilon: 0.01
-Episode 4700/5000, Total Reward: 159.00, Epsilon: 0.01
-Episode 4750/5000, Total Reward: 118.80, Epsilon: 0.01
-Episode 4800/5000, Total Reward: 159.60, Epsilon: 0.01
-Episode 4850/5000, Total Reward: 159.60, Epsilon: 0.01
-Episode 4900/5000, Total Reward: 139.60, Epsilon: 0.01
-Episode 4950/5000, Total Reward: 76.00, Epsilon: 0.01
-Episode 5000/5000, Total Reward: 158.80, Epsilon: 0.01
+Episode 50/2000, Total Reward: -287.50, Best Reward: -128.80, Epsilon: 0.95
+Episode 100/2000, Total Reward: -938.00, Best Reward: -128.80, Epsilon: 0.90
+Episode 150/2000, Total Reward: -315.50, Best Reward: -2.10, Epsilon: 0.86
+Episode 200/2000, Total Reward: -197.00, Best Reward: -2.10, Epsilon: 0.82
+Episode 250/2000, Total Reward: -361.30, Best Reward: -2.10, Epsilon: 0.78
+Episode 300/2000, Total Reward: -198.80, Best Reward: -2.10, Epsilon: 0.74
+Episode 350/2000, Total Reward: -7.80, Best Reward: 44.80, Epsilon: 0.70
+Episode 400/2000, Total Reward: -316.70, Best Reward: 66.60, Epsilon: 0.67
+Episode 450/2000, Total Reward: 60.70, Best Reward: 91.30, Epsilon: 0.64
+Episode 500/2000, Total Reward: 88.20, Best Reward: 126.00, Epsilon: 0.61
+Episode 550/2000, Total Reward: -241.20, Best Reward: 133.90, Epsilon: 0.58
+Episode 600/2000, Total Reward: -287.10, Best Reward: 133.90, Epsilon: 0.55
+Episode 650/2000, Total Reward: -173.50, Best Reward: 144.30, Epsilon: 0.52
+Episode 700/2000, Total Reward: 15.60, Best Reward: 148.40, Epsilon: 0.50
+Episode 750/2000, Total Reward: 118.40, Best Reward: 148.40, Epsilon: 0.47
+Episode 800/2000, Total Reward: -209.60, Best Reward: 148.40, Epsilon: 0.45
+Episode 850/2000, Total Reward: 91.10, Best Reward: 148.40, Epsilon: 0.43
+Episode 900/2000, Total Reward: 143.50, Best Reward: 148.40, Epsilon: 0.41
+Episode 950/2000, Total Reward: 73.10, Best Reward: 148.40, Epsilon: 0.39
+Episode 1000/2000, Total Reward: 66.60, Best Reward: 154.30, Epsilon: 0.37
+Episode 1050/2000, Total Reward: 144.10, Best Reward: 159.40, Epsilon: 0.35
+Episode 1100/2000, Total Reward: -132.10, Best Reward: 159.40, Epsilon: 0.33
+Episode 1150/2000, Total Reward: -110.80, Best Reward: 159.40, Epsilon: 0.32
+Episode 1200/2000, Total Reward: 87.40, Best Reward: 159.40, Epsilon: 0.30
+Episode 1250/2000, Total Reward: 138.80, Best Reward: 159.40, Epsilon: 0.29
+Episode 1300/2000, Total Reward: 138.20, Best Reward: 159.40, Epsilon: 0.27
+Episode 1350/2000, Total Reward: 118.60, Best Reward: 159.40, Epsilon: 0.26
+Episode 1400/2000, Total Reward: 154.10, Best Reward: 159.40, Epsilon: 0.25
+Episode 1450/2000, Total Reward: 118.40, Best Reward: 159.40, Epsilon: 0.23
+Episode 1500/2000, Total Reward: 128.40, Best Reward: 159.40, Epsilon: 0.22
+Episode 1550/2000, Total Reward: 119.20, Best Reward: 159.60, Epsilon: 0.21
+Episode 1600/2000, Total Reward: 134.50, Best Reward: 159.60, Epsilon: 0.20
+Episode 1650/2000, Total Reward: 148.60, Best Reward: 159.60, Epsilon: 0.19
+Episode 1700/2000, Total Reward: 134.30, Best Reward: 159.60, Epsilon: 0.18
+Episode 1750/2000, Total Reward: 104.10, Best Reward: 159.60, Epsilon: 0.17
+Episode 1800/2000, Total Reward: 139.00, Best Reward: 159.60, Epsilon: 0.17
+Episode 1850/2000, Total Reward: 103.90, Best Reward: 159.60, Epsilon: 0.16
+Episode 1900/2000, Total Reward: 148.80, Best Reward: 159.60, Epsilon: 0.15
+Episode 1950/2000, Total Reward: -115.90, Best Reward: 159.60, Epsilon: 0.14
+Episode 2000/2000, Total Reward: 134.50, Best Reward: 159.60, Epsilon: 0.14
 Training Finished!
