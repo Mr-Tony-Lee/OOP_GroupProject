@@ -23,14 +23,13 @@ class DungeonCrawlerEnv(gym.Env):
         self.action_space = spaces.Discrete(len(dg.Direction))
 
         # Observation Space: 
-        # 為了簡化，我們回傳一個向量包含：
-        # [player_row, player_col, has_key(0/1)]
-        # 如果要讓 AI 更聰明，可以考慮回傳整個地圖的狀態，或者 Ray Casting
+        # 使用 Multi-Channel Grid (C, H, W)
+        # Channels: 0:Wall, 1:Player, 2:Enemy, 3:Key, 4:Door, 5:Treasure, 6:Trap, 7:HasKey
         self.observation_space = spaces.Box(
             low=0,
-            high=np.array([self.game.grid_rows, self.game.grid_cols, 1]),
-            shape=(3,),
-            dtype=np.int32
+            high=1,
+            shape=(8, self.game.grid_rows, self.game.grid_cols),
+            dtype=np.float32
         )
 
     def reset(self, seed=None, options=None):
@@ -38,6 +37,31 @@ class DungeonCrawlerEnv(gym.Env):
         
         # 重置遊戲
         self.game.reset()
+        
+        # 初始化 Base Observation (包含靜態物件)
+        # Channels: 0:Wall, 1:Player, 2:Enemy, 3:Key, 4:Door, 5:Treasure, 6:Trap, 7:HasKey
+        self.base_obs = np.zeros((8, self.game.grid_rows, self.game.grid_cols), dtype=np.float32)
+        
+        self.key_pos = None
+        self.door_pos = None
+        self.treasure_pos = None
+
+        for r in range(self.game.grid_rows):
+            for c in range(self.game.grid_cols):
+                obj = self.game.grid[r][c]
+                if isinstance(obj, dg.Wall):
+                    self.base_obs[0, r, c] = 1
+                elif isinstance(obj, dg.Key):
+                    self.base_obs[3, r, c] = 1
+                    self.key_pos = (r, c)
+                elif isinstance(obj, dg.Door):
+                    self.base_obs[4, r, c] = 1
+                    self.door_pos = (r, c)
+                elif isinstance(obj, dg.Treasure):
+                    self.base_obs[5, r, c] = 1
+                    self.treasure_pos = (r, c)
+                elif isinstance(obj, dg.Trap):
+                    self.base_obs[6, r, c] = 1
         
         # 建構觀察值
         obs = self._get_obs()
@@ -77,7 +101,7 @@ class DungeonCrawlerEnv(gym.Env):
 
         # 0. 撞牆懲罰 (位置沒變且沒結束)
         if not terminated and self.game.player.row == prev_row and self.game.player.col == prev_col:
-            reward -= 0.5 # 撞牆扣分
+            reward -= 5.0 # 大幅增加撞牆扣分，避免 Agent 卡在牆邊
         
         # 1. 拿到寶藏 (遊戲結束且勝利)
         if terminated and self.game.player.hp > 0:
@@ -93,13 +117,43 @@ class DungeonCrawlerEnv(gym.Env):
         if not prev_has_key and self.game.player.has_key:
             reward += 50 # 鼓勵去撿鑰匙
             events.append("found_key")
-            # print("Reward: Found Key! (+50)")
+            # 更新 Base Obs: 移除鑰匙
+            self.base_obs[3, self.game.player.row, self.game.player.col] = 0
 
         # 4. 開門 (給予獎勵)
         if is_door and self.game.player.row == target_r and self.game.player.col == target_c:
             reward += 10 # 開門獎勵
             events.append("opened_door")
-            # print("Reward: Opened Door! (+10)")
+            # 更新 Base Obs: 移除門
+            self.base_obs[4, target_r, target_c] = 0
+
+        # 5. 距離獎勵 (Distance Reward)
+        # 找出當前目標 (如果有鑰匙 -> 找門/寶藏，如果沒鑰匙 -> 找鑰匙)
+        target_pos = None
+        if not self.game.player.has_key:
+            # 找鑰匙
+            target_pos = self.key_pos
+        else:
+            # 找門或寶藏
+            # 優先找門 (如果門還在)
+            if self.door_pos:
+                r, c = self.door_pos
+                if isinstance(self.game.grid[r][c], dg.Door):
+                    target_pos = self.door_pos
+                else:
+                    target_pos = self.treasure_pos
+            else:
+                target_pos = self.treasure_pos
+        
+        if target_pos:
+            # 計算曼哈頓距離
+            curr_dist = abs(self.game.player.row - target_pos[0]) + abs(self.game.player.col - target_pos[1])
+            prev_dist = abs(prev_row - target_pos[0]) + abs(prev_col - target_pos[1])
+            
+            if curr_dist < prev_dist:
+                reward += 0.1 # 靠近目標
+            elif curr_dist > prev_dist:
+                reward -= 0.1 # 遠離目標
 
         # 檢查是否死亡 (HP <= 0)
         if self.game.player.hp <= 0:
@@ -119,11 +173,22 @@ class DungeonCrawlerEnv(gym.Env):
         self.game.render()
 
     def _get_obs(self):
-        return np.array([
-            self.game.player.row, 
-            self.game.player.col, 
-            1 if self.game.player.has_key else 0
-        ], dtype=np.int32)
+        # 複製 Base Obs (包含 Wall, Key, Door, Treasure, Trap)
+        obs = self.base_obs.copy()
+        
+        # 更新動態物件
+        # Player
+        obs[1, self.game.player.row, self.game.player.col] = 1
+        
+        # Enemies
+        for enemy in self.game.enemies:
+            obs[2, enemy.row, enemy.col] = 1
+            
+        # Has Key (Global info broadcast to whole channel)
+        if self.game.player.has_key:
+            obs[7, :, :] = 1
+            
+        return obs
 
     def close(self):
         if self.render_mode == "human":
