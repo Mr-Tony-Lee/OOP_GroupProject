@@ -1,7 +1,14 @@
 import numpy as np
 import random
 from abc import ABC, abstractmethod
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from collections import deque
 import pickle
+
+# 設定裝置 (有顯卡用顯卡，沒顯卡用 CPU)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Agent(ABC):
     def __init__(self, action_space):
@@ -13,6 +20,14 @@ class Agent(ABC):
 
     @abstractmethod
     def learn(self, state, action, reward, next_state, done):
+        pass
+
+    @abstractmethod
+    def save(self, filename):
+        pass
+
+    @abstractmethod
+    def load(self, filename):
         pass
 
 class QLearningAgent(Agent):
@@ -66,3 +81,122 @@ class QLearningAgent(Agent):
         with open(filename, 'rb') as f:
             self.q_table = pickle.load(f)
         print(f"Q-Table loaded from {filename}")
+
+# 定義神經網路結構
+class QNetwork(nn.Module):
+    def __init__(self, input_shape, scalar_dim, num_actions):
+        super(QNetwork, self).__init__()
+        c, h, w = input_shape
+        
+        # 1. CNN 部分 (處理地圖畫面)
+        self.cnn = nn.Sequential(
+            nn.Conv2d(c, 16, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Flatten()
+        )
+        
+        # 自動計算 Flatten 後的大小
+        with torch.no_grad():
+            dummy = torch.zeros(1, c, h, w)
+            cnn_out_size = self.cnn(dummy).shape[1]
+            
+        # 2. 全連接部分 (結合 CNN 特徵 + 數值特徵)
+        self.fc = nn.Sequential(
+            nn.Linear(cnn_out_size + scalar_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, num_actions)
+        )
+
+    def forward(self, image, scalar):
+        # image shape: (batch, 7, h, w)
+        # scalar shape: (batch, 1)
+        img_feat = self.cnn(image)
+        combined = torch.cat((img_feat, scalar), dim=1)
+        return self.fc(combined)
+
+class CNNAgent(Agent):
+    def __init__(self, observation_space, action_space, learning_rate=0.001, gamma=0.99, epsilon=1.0, epsilon_decay=0.995, min_epsilon=0.05):
+        super().__init__(action_space)
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.min_epsilon = min_epsilon
+        
+        # 取得輸入形狀
+        img_shape = observation_space['image'].shape
+        scalar_dim = observation_space['scalars'].shape[0]
+        
+        # 初始化神經網路
+        self.model = QNetwork(img_shape, scalar_dim, action_space.n).to(device)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
+        self.loss_fn = nn.MSELoss()
+        
+        # 經驗回放 (Replay Buffer) - 用於打破數據相關性
+        self.memory = deque(maxlen=5000)
+        self.batch_size = 64
+
+    def get_action(self, state):
+        # Epsilon-Greedy 策略
+        if random.random() < self.epsilon:
+            return self.action_space.sample()
+        
+        # 處理輸入資料
+        img_tensor = torch.FloatTensor(state['image']).unsqueeze(0).to(device)     # (1, 7, H, W)
+        scalar_tensor = torch.FloatTensor(state['scalars']).unsqueeze(0).to(device) # (1, 1)
+        
+        with torch.no_grad():
+            q_values = self.model(img_tensor, scalar_tensor)
+            
+        return torch.argmax(q_values).item()
+
+    def learn(self, state, action, reward, next_state, done):
+        # 1. 儲存經驗
+        self.memory.append((state, action, reward, next_state, done))
+        
+        # 衰減 Epsilon
+        if done:
+            self.epsilon = max(self.min_epsilon, self.epsilon * self.epsilon_decay)
+            
+        # 2. 如果樣本數不足，先不訓練
+        if len(self.memory) < self.batch_size:
+            return
+
+        # 3. 隨機抽樣 (Batch Training)
+        batch = random.sample(self.memory, self.batch_size)
+        
+        # 整理 Batch 資料
+        batch_imgs = torch.FloatTensor(np.array([x[0]['image'] for x in batch])).to(device)
+        batch_scalars = torch.FloatTensor(np.array([x[0]['scalars'] for x in batch])).to(device)
+        batch_actions = torch.LongTensor([x[1] for x in batch]).unsqueeze(1).to(device)
+        batch_rewards = torch.FloatTensor([x[2] for x in batch]).unsqueeze(1).to(device)
+        
+        batch_next_imgs = torch.FloatTensor(np.array([x[3]['image'] for x in batch])).to(device)
+        batch_next_scalars = torch.FloatTensor(np.array([x[3]['scalars'] for x in batch])).to(device)
+        batch_dones = torch.FloatTensor([x[4] for x in batch]).unsqueeze(1).to(device)
+
+        # 4. 計算 Loss
+        # 當前狀態的 Q 值: Q(s, a)
+        curr_q = self.model(batch_imgs, batch_scalars).gather(1, batch_actions)
+        
+        # 下一步狀態的最大 Q 值: max Q(s', a')
+        with torch.no_grad():
+            next_q = self.model(batch_next_imgs, batch_next_scalars).max(1)[0].unsqueeze(1)
+            target_q = batch_rewards + (1 - batch_dones) * self.gamma * next_q
+            
+        loss = self.loss_fn(curr_q, target_q)
+        
+        # 5. 更新網路
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+    def save(self, filename):
+        torch.save(self.model.state_dict(), filename)
+        print(f"CNN Model saved to {filename}")
+
+    def load(self, filename):
+        self.model.load_state_dict(torch.load(filename, map_location=device))
+        self.model.eval()
+        print(f"CNN Model loaded from {filename}")
