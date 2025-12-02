@@ -2,6 +2,7 @@ import gymnasium as gym
 from agent import QLearningAgent
 import matplotlib.pyplot as plt
 import os
+import dungeon_env
 
 def train():
     # 建立環境 (不開啟 render 以加快訓練速度)
@@ -99,10 +100,6 @@ def test():
     env.close()
 
 if __name__ == "__main__":
-    # 你可以選擇要訓練還是測試
-    # train()
-    # test()
-    
     # 為了方便，我們先跑訓練再跑測試
     # train()
     test()

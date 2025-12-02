@@ -26,12 +26,12 @@ class DungeonCrawlerEnv(gym.Env):
         # 為了簡化，我們回傳一個向量包含：
         # [player_row, player_col, has_key(0/1)]
         # 如果要讓 AI 更聰明，可以考慮回傳整個地圖的狀態，或者 Ray Casting
-        self.observation_space = spaces.Box(
-            low=0,
-            high=np.array([self.game.grid_rows, self.game.grid_cols, 1]),
-            shape=(3,),
-            dtype=np.int32
-        )
+        self.observation_space = spaces.Dict({
+            #  player, wall, key, door, treasure, trap, monster
+            "image": spaces.Box(low=0, high=1, shape=(7, self.game.grid_rows, self.game.grid_cols), dtype=np.float32),
+            # has key
+            "scalars": spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
+        })
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -119,11 +119,44 @@ class DungeonCrawlerEnv(gym.Env):
         self.game.render()
 
     def _get_obs(self):
-        return np.array([
-            self.game.player.row, 
-            self.game.player.col, 
-            1 if self.game.player.has_key else 0
-        ], dtype=np.int32)
+        image = np.zeros((7, self.game.grid_rows, self.game.grid_cols), dtype=np.float32)
+
+        # Channel 0: 玩家位置 (Player)
+        image[0, self.game.player.row, self.game.player.col] = 1.0
+
+        for r in range(self.game.grid_rows):
+            for c in range(self.game.grid_cols):
+                obj = self.game.grid[r][c]
+                
+                # Channel 1: 牆壁 (Wall) - 永久障礙
+                if isinstance(obj, dg.Wall):
+                    image[1, r, c] = 1.0
+                
+                # Channel 2: 鑰匙 (Key)
+                elif isinstance(obj, dg.Key) and not obj.collected:
+                    image[2, r, c] = 1.0
+
+                # Channel 3: 門 (Door) - 需要鑰匙的障礙
+                # 注意: 根據你的 game 邏輯，門打開後會變 Floor，這裡就會自動變回 0，這很棒
+                elif isinstance(obj, dg.Door):
+                    image[3, r, c] = 1.0
+                
+                # Channel 4: 寶藏 (Treasure)
+                elif isinstance(obj, dg.Treasure) and not obj.collected:
+                    image[4, r, c] = 1.0
+                
+                # Channel 5: 陷阱 (Trap)
+                elif isinstance(obj, dg.Trap):
+                    image[5, r, c] = 1.0
+        
+        # Channel 6: 怪物 (Monster)
+        for enemy in self.game.enemies:
+            image[6, enemy.row, enemy.col] = 1.0
+
+        has_key_val = 1.0 if self.game.player.has_key else 0.0
+        scalars = np.array([has_key_val], dtype=np.float32)
+
+        return {"image": image, "scalars": scalars}
 
     def close(self):
         if self.render_mode == "human":
