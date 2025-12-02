@@ -15,6 +15,7 @@ class DungeonCrawlerEnv(gym.Env):
 
     def __init__(self, render_mode=None):
         self.render_mode = render_mode
+        self.max_steps = 500 # 設定最大步數限制，避免無限迴圈
         
         # 初始化遊戲 (如果 render_mode 是 None，則不開啟圖形介面)
         self.game = dg.DungeonGame(no_graphics=(render_mode is None))
@@ -42,6 +43,8 @@ class DungeonCrawlerEnv(gym.Env):
         # Channels: 0:Wall, 1:Player, 2:Enemy, 3:Key, 4:Door, 5:Treasure, 6:Trap, 7:HasKey
         self.base_obs = np.zeros((8, self.game.grid_rows, self.game.grid_cols), dtype=np.float32)
         
+        self.current_step = 0 # 重置步數計數器
+
         self.key_pos = None
         self.door_pos = None
         self.treasure_pos = None
@@ -101,7 +104,7 @@ class DungeonCrawlerEnv(gym.Env):
 
         # 0. 撞牆懲罰 (位置沒變且沒結束)
         if not terminated and self.game.player.row == prev_row and self.game.player.col == prev_col:
-            reward -= 5.0 # 大幅增加撞牆扣分，避免 Agent 卡在牆邊
+            reward -= 0.5 # 降低撞牆扣分 (原本 -5.0 太重了，會導致 Agent 不敢探索)
         
         # 1. 拿到寶藏 (遊戲結束且勝利)
         if terminated and self.game.player.hp > 0:
@@ -161,13 +164,19 @@ class DungeonCrawlerEnv(gym.Env):
             reward -= 50 # 死亡懲罰
             events.append("died")
 
+        # 檢查是否超時
+        self.current_step += 1
+        truncated = False
+        if self.current_step >= self.max_steps:
+            truncated = True
+
         obs = self._get_obs()
         info = {"events": events}
 
         if self.render_mode == 'human':
             self.render()
 
-        return obs, reward, terminated, False, info
+        return obs, reward, terminated, truncated, info
 
     def render(self):
         self.game.render()

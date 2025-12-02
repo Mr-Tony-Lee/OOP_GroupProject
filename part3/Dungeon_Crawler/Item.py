@@ -123,7 +123,6 @@ class Key(Item):
         if not self.collected:
             self.collected = True
             player.has_key = True
-            print("Got the key!")
             return 10
         return 0
 
@@ -136,7 +135,6 @@ class Door(GameObject):
         if player.has_key:
             return True
         else:
-            print("You need a key to open this door!")
             return False
 
     def on_enter(self, player):

@@ -111,6 +111,7 @@ def train(agent_type="DQN"):
             # 只在每 50 回合 flush 一次
             if (episode + 1) % 50 == 0:
                 log_msg = f"Episode {episode+1}/{episodes}, Total Reward: {total_reward:.2f}, Best Reward: {best_reward:.2f}, Epsilon: {agent.epsilon:.2f}\n"
+                print(log_msg.strip())
                 log_file.write(log_msg)
                 log_file.flush()
                 event_file.flush() 
@@ -191,12 +192,6 @@ def test(agent_type="DQN"):
 
     print(f"Test Finished. Total Reward: {total_reward}")
     
-    # 測試結束後暫停一下，讓使用者看到結果
-    if env.unwrapped.render_mode == 'human':
-        import time
-        print("Closing in 3 seconds...")
-        time.sleep(3)
-        
     env.close()
 
 if __name__ == "__main__":
