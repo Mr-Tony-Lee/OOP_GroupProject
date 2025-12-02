@@ -128,14 +128,21 @@ class CNNAgent(Agent):
         img_shape = observation_space['image'].shape
         scalar_dim = observation_space['scalars'].shape[0]
         
-        # 初始化神經網路
-        self.model = QNetwork(img_shape, scalar_dim, action_space.n).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
-        self.loss_fn = nn.MSELoss()
+        # [修改 1] 初始化兩個網路：Policy Net (訓練用) 和 Target Net (計算目標用)
+        self.policy_net = QNetwork(img_shape, scalar_dim, action_space.n).to(device)
+        self.target_net = QNetwork(img_shape, scalar_dim, action_space.n).to(device)
         
-        # 經驗回放 (Replay Buffer) - 用於打破數據相關性
-        self.memory = deque(maxlen=5000)
-        self.batch_size = 64
+        # 一開始先同步權重
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval() # Target Net 不需要計算梯度，設為評估模式
+        
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=learning_rate)
+        self.loss_fn = nn.SmoothL1Loss() # [建議] 改用 Huber Loss (SmoothL1) 比 MSE 更穩定
+        
+        # [修改 2] 加大記憶體
+        self.memory = deque(maxlen=50000) 
+        self.batch_size = 512
+        self.learn_step_counter = 0 # 計數器，用來決定何時更新 Target Net
 
     def get_action(self, state):
         # Epsilon-Greedy 策略
@@ -147,7 +154,7 @@ class CNNAgent(Agent):
         scalar_tensor = torch.FloatTensor(state['scalars']).unsqueeze(0).to(device) # (1, 1)
         
         with torch.no_grad():
-            q_values = self.model(img_tensor, scalar_tensor)
+            q_values = self.policy_net(img_tensor, scalar_tensor)
             
         return torch.argmax(q_values).item()
 
@@ -176,13 +183,13 @@ class CNNAgent(Agent):
         batch_next_scalars = torch.FloatTensor(np.array([x[3]['scalars'] for x in batch])).to(device)
         batch_dones = torch.FloatTensor([x[4] for x in batch]).unsqueeze(1).to(device)
 
-        # 4. 計算 Loss
-        # 當前狀態的 Q 值: Q(s, a)
-        curr_q = self.model(batch_imgs, batch_scalars).gather(1, batch_actions)
+        # [修改 3] 計算 Q 值
+        # Current Q: 由 Policy Net 計算
+        curr_q = self.policy_net(batch_imgs, batch_scalars).gather(1, batch_actions)
         
-        # 下一步狀態的最大 Q 值: max Q(s', a')
+        # Target Q: 由 Target Net 計算 (關鍵！)
         with torch.no_grad():
-            next_q = self.model(batch_next_imgs, batch_next_scalars).max(1)[0].unsqueeze(1)
+            next_q = self.target_net(batch_next_imgs, batch_next_scalars).max(1)[0].unsqueeze(1)
             target_q = batch_rewards + (1 - batch_dones) * self.gamma * next_q
             
         loss = self.loss_fn(curr_q, target_q)
@@ -190,13 +197,23 @@ class CNNAgent(Agent):
         # 5. 更新網路
         self.optimizer.zero_grad()
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 1.0)
+
         self.optimizer.step()
 
+        # [修改 4] 定期更新 Target Net (例如每學習 1000 次同步一次)
+        self.learn_step_counter += 1
+        if self.learn_step_counter % 1000 == 0:
+            self.target_net.load_state_dict(self.policy_net.state_dict())
+            print("Target Network Updated")
+
     def save(self, filename):
-        torch.save(self.model.state_dict(), filename)
+        torch.save(self.policy_net.state_dict(), filename)
         print(f"CNN Model saved to {filename}")
 
     def load(self, filename):
-        self.model.load_state_dict(torch.load(filename, map_location=device))
-        self.model.eval()
+        self.policy_net.load_state_dict(torch.load(filename, map_location=device))
+        self.target_net.load_state_dict(self.policy_net.state_dict()) # 載入時也要同步
+        self.policy_net.eval()
         print(f"CNN Model loaded from {filename}")

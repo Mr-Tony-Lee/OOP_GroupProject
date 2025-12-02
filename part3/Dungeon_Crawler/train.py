@@ -13,11 +13,11 @@ def train():
     agent = CNNAgent(
         observation_space=env.observation_space,
         action_space=env.action_space,
-        learning_rate=0.0005,
+        learning_rate=0.00025,
         gamma=0.99,
         epsilon=1.0,
         epsilon_decay=0.998, # CNN 需要多一點時間探索
-        min_epsilon=0.1
+        min_epsilon=0.05
     )
 
     episodes = 2000 # 增加回合數以利收斂
@@ -123,5 +123,5 @@ def test():
     env.close()
 
 if __name__ == "__main__":
-    train()
-    # test()
+    # train()
+    test()
