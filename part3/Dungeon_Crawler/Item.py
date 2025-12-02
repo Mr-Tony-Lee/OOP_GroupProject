@@ -202,5 +202,5 @@ class Enemy(Character):
         return False # 玩家不能穿過怪物
 
     def on_enter(self, player):
-        player.take_damage(20)
-        return -20
+        player.take_damage(100)
+        return -100
