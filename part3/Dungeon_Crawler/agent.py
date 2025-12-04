@@ -116,56 +116,70 @@ class QLearningAgent(Agent):
 # ============================================================================
 class DQN(nn.Module):
     """
-    Deep Q-Network 架構
+    Deep Q-Network 架構 (修改版：支援圖像+純量輸入)
     
-    用途：處理連續的狀態空間 (3D 張量)
-    輸入：(batch_size, C, H, W) 的 3D 圖像
+    用途：處理圖像和純量混合輸入
+    輸入：
+        - image: (batch_size, C, H, W)
+        - scalar: (batch_size, scalar_dim)
     輸出：(batch_size, action_dim) 的 Q 值
     """
     
-    def __init__(self, input_shape, output_dim):
+    def __init__(self, input_shape, scalar_dim, output_dim):
         super(DQN, self).__init__()
-        # input_shape: (C, H, W) -> (8, 11, 12)
-        self.conv1 = nn.Conv2d(input_shape[0], 32, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
+        c, h, w = input_shape
+        
+        # CNN 分支 (參考 CNNAgent 的 QNetwork)
+        self.cnn = nn.Sequential(
+            nn.Conv2d(c, 16, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Flatten()
+        )
         
         # 計算展平後的大小
-        # 11x12 -> 11x12 (padding=1, stride=1 保持尺寸)
-        flatten_size = 64 * input_shape[1] * input_shape[2]
-        
-        self.fc1 = nn.Linear(flatten_size, 512)
-        self.fc2 = nn.Linear(512, output_dim)
+        with torch.no_grad():
+            dummy = torch.zeros(1, c, h, w)
+            cnn_out_size = self.cnn(dummy).shape[1]
+            
+        # 全連接分支 (結合 CNN 特徵 + 數值特徵)
+        self.fc = nn.Sequential(
+            nn.Linear(cnn_out_size + scalar_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, output_dim)
+        )
 
-    def forward(self, x):
-        x = torch.relu(self.conv1(x))
-        x = torch.relu(self.conv2(x))
-        x = torch.relu(self.conv3(x))
-        x = x.view(x.size(0), -1)  # 展平
-        x = torch.relu(self.fc1(x))
-        return self.fc2(x)
+    def forward(self, image, scalar):
+        img_feat = self.cnn(image)
+        combined = torch.cat((img_feat, scalar), dim=1)
+        return self.fc(combined)
 
 
 class ReplayBuffer:
-    """經驗重放緩衝區，用於存儲和採樣訓練數據"""
+    """經驗重放緩衝區，用於存儲和採樣訓練數據 (支援圖像+純量)"""
     
-    def __init__(self, capacity, state_shape, action_dim):
+    def __init__(self, capacity, state_shape, scalar_dim, action_dim):
         self.capacity = capacity
         self.ptr = 0
         self.size = 0
         
         self.states = np.zeros((capacity, *state_shape), dtype=np.float32)
+        self.scalars = np.zeros((capacity, scalar_dim), dtype=np.float32)
         self.actions = np.zeros((capacity, 1), dtype=np.int64)
         self.rewards = np.zeros((capacity, 1), dtype=np.float32)
         self.next_states = np.zeros((capacity, *state_shape), dtype=np.float32)
+        self.next_scalars = np.zeros((capacity, scalar_dim), dtype=np.float32)
         self.dones = np.zeros((capacity, 1), dtype=np.float32)
 
     def add(self, state, action, reward, next_state, done):
         """添加一條經驗"""
-        self.states[self.ptr] = state
+        self.states[self.ptr] = state['image']
+        self.scalars[self.ptr] = state['scalars']
         self.actions[self.ptr] = action
         self.rewards[self.ptr] = reward
-        self.next_states[self.ptr] = next_state
+        self.next_states[self.ptr] = next_state['image']
+        self.next_scalars[self.ptr] = next_state['scalars']
         self.dones[self.ptr] = done
         
         self.ptr = (self.ptr + 1) % self.capacity
@@ -176,33 +190,35 @@ class ReplayBuffer:
         ind = np.random.randint(0, self.size, size=batch_size)
         return (
             self.states[ind],
+            self.scalars[ind],
             self.actions[ind],
             self.rewards[ind],
             self.next_states[ind],
+            self.next_scalars[ind],
             self.dones[ind]
         )
 
 
 class DQNAgent(Agent):
     """
-    Deep Q-Network Agent
+    Deep Q-Network Agent (改進版)
     
-    適用於：
-    - 連續的狀態空間 (圖像)
-    - 需要深度學習的複雜決策問題
-    
-    特點：
-    - 使用經驗重放
-    - 使用目標網絡
-    - 使用 Double DQN 邏輯
+    改進點：
+    1. 支援多模態輸入 (Image + Scalar)
+    2. 使用 SmoothL1Loss
+    3. 增加梯度裁剪
+    4. 調整超參數以匹配 CNNAgent
     """
     
-    def __init__(self, state_shape, action_space, learning_rate=0.0001, 
-                 discount_factor=0.99, epsilon=1.0, epsilon_decay=0.9995, 
-                 min_epsilon=0.01, batch_size=64, memory_size=50000):
+    def __init__(self, observation_space, action_space, learning_rate=0.001, 
+                 discount_factor=0.99, epsilon=1.0, epsilon_decay=0.995, 
+                 min_epsilon=0.01, batch_size=512, memory_size=50000):
         super().__init__(action_space)
-        self.state_shape = state_shape  # (C, H, W)
+        
+        self.state_shape = observation_space['image'].shape
+        self.scalar_dim = observation_space['scalars'].shape[0]
         self.action_dim = action_space.n
+        
         self.lr = learning_rate
         self.gamma = discount_factor
         self.epsilon = epsilon
@@ -211,18 +227,18 @@ class DQNAgent(Agent):
         self.batch_size = batch_size
         
         # 使用優化後的 Replay Buffer
-        self.memory = ReplayBuffer(memory_size, state_shape, self.action_dim)
+        self.memory = ReplayBuffer(memory_size, self.state_shape, self.scalar_dim, self.action_dim)
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"DQN Agent using device: {self.device}")
         
-        self.q_network = DQN(self.state_shape, self.action_dim).to(self.device)
-        self.target_network = DQN(self.state_shape, self.action_dim).to(self.device)
+        self.q_network = DQN(self.state_shape, self.scalar_dim, self.action_dim).to(self.device)
+        self.target_network = DQN(self.state_shape, self.scalar_dim, self.action_dim).to(self.device)
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
         
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.lr)
-        self.criterion = nn.MSELoss()
+        self.criterion = nn.SmoothL1Loss()  # 改用 SmoothL1Loss
         
         self.steps = 0
         self.target_update_freq = 1000
@@ -232,10 +248,12 @@ class DQNAgent(Agent):
         if random.random() < self.epsilon:
             return self.action_space.sample()
         
-        # state is (C, H, W), need (1, C, H, W)
-        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        # 處理輸入
+        img_tensor = torch.FloatTensor(state['image']).unsqueeze(0).to(self.device)
+        scalar_tensor = torch.FloatTensor(state['scalars']).unsqueeze(0).to(self.device)
+        
         with torch.no_grad():
-            q_values = self.q_network(state_tensor)
+            q_values = self.q_network(img_tensor, scalar_tensor)
         return torch.argmax(q_values).item()
 
     def learn(self, state, action, reward, next_state, done):
@@ -246,30 +264,34 @@ class DQNAgent(Agent):
         if self.memory.size < self.batch_size:
             return
             
-        states, actions, rewards, next_states, dones = self.memory.sample(self.batch_size)
+        states, scalars, actions, rewards, next_states, next_scalars, dones = self.memory.sample(self.batch_size)
         
         states = torch.FloatTensor(states).to(self.device)
+        scalars = torch.FloatTensor(scalars).to(self.device)
         actions = torch.LongTensor(actions).to(self.device)
         rewards = torch.FloatTensor(rewards).to(self.device)
         next_states = torch.FloatTensor(next_states).to(self.device)
+        next_scalars = torch.FloatTensor(next_scalars).to(self.device)
         dones = torch.FloatTensor(dones).to(self.device)
         
         # Double DQN Logic
         # 1. 使用 Online Network 選擇動作
         with torch.no_grad():
-            next_actions = self.q_network(next_states).argmax(1).unsqueeze(1)
+            next_actions = self.q_network(next_states, next_scalars).argmax(1).unsqueeze(1)
             # 2. 使用 Target Network 評估動作
-            next_q_values = self.target_network(next_states).gather(1, next_actions)
+            next_q_values = self.target_network(next_states, next_scalars).gather(1, next_actions)
             
         target_q_values = rewards + (self.gamma * next_q_values * (1 - dones))
         
         # 當前 Q 值
-        current_q_values = self.q_network(states).gather(1, actions)
+        current_q_values = self.q_network(states, scalars).gather(1, actions)
             
         loss = self.criterion(current_q_values, target_q_values)
         
         self.optimizer.zero_grad()
         loss.backward()
+        # 增加梯度裁剪
+        torch.nn.utils.clip_grad_norm_(self.q_network.parameters(), 1.0)
         self.optimizer.step()
         
         if done:
