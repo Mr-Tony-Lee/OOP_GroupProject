@@ -229,8 +229,7 @@ def test(agent_type="DQN"):
     elif agent_type == "CNN":
         agent = CNNAgent(env.observation_space, env.action_space, epsilon=0.0)
     elif agent_type == "DQN":
-        state_shape = env.observation_space.shape
-        agent = DQNAgent(state_shape, env.action_space, epsilon=0.0)
+        agent = DQNAgent(env.observation_space, env.action_space, epsilon=0.0)
     else:
         raise ValueError(f"Unknown agent type: {agent_type}")
     
