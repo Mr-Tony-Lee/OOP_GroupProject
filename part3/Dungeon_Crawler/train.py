@@ -35,7 +35,7 @@ def preprocess_state(state, agent_type):
         return state
     
     else:  # DQN
-        # DQN 環境返回 (8, H, W)，直接返回
+        # DQN 現在也使用 Dict 輸入 (Image + Scalar)
         return state
 
 
@@ -66,16 +66,16 @@ def get_agent(agent_type, env):
         )
     
     elif agent_type == "DQN":
-        state_shape = env.observation_space.shape  # (C, H, W)
+        # DQN 改用 observation_space (Dict)
         return DQNAgent(
-            state_shape=state_shape,
+            observation_space=env.observation_space,
             action_space=env.action_space,
-            learning_rate=0.0001,
+            learning_rate=0.001,  # 調整為與 CNNAgent 相似
             discount_factor=0.99,
             epsilon=1.0,
-            epsilon_decay=0.9995,
+            epsilon_decay=0.995,  # 調整為與 CNNAgent 相似
             min_epsilon=0.01,
-            batch_size=64,
+            batch_size=512,       # 調整為與 CNNAgent 相似
             memory_size=50000
         )
     
@@ -90,7 +90,10 @@ def get_env_id(agent_type):
     """根據 agent 類型選擇合適的環境"""
     if agent_type == "CNN":
         return 'dungeon-crawler-cnn-v0'
-    else:  # QLearning 或 DQN
+    elif agent_type == "DQN":
+        # DQN 現在使用 CNN 環境 (Dict Observation)
+        return 'dungeon-crawler-cnn-v0'
+    else:  # QLearning
         return 'dungeon-crawler-dqn-v0'
 
 
@@ -226,8 +229,7 @@ def test(agent_type="DQN"):
     elif agent_type == "CNN":
         agent = CNNAgent(env.observation_space, env.action_space, epsilon=0.0)
     elif agent_type == "DQN":
-        state_shape = env.observation_space.shape
-        agent = DQNAgent(state_shape, env.action_space, epsilon=0.0)
+        agent = DQNAgent(env.observation_space, env.action_space, epsilon=0.0)
     else:
         raise ValueError(f"Unknown agent type: {agent_type}")
     
@@ -290,9 +292,9 @@ def test(agent_type="DQN"):
 # ============================================================================
 if __name__ == "__main__":
     # 選擇要使用的 Agent: "QLearning", "DQN" 或 "CNN"
-    # AGENT_TYPE = "DQN"
-    AGENT_TYPE = "CNN"
+    AGENT_TYPE = "DQN"
+    # AGENT_TYPE = "CNN"
     # AGENT_TYPE = "QLearning"
     
-    # train(AGENT_TYPE)
-    test(AGENT_TYPE)
+    train(AGENT_TYPE)
+    # test(AGENT_TYPE)
