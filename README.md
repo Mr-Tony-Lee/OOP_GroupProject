@@ -1,91 +1,264 @@
-# Group Project Setup Guide
+# OOP Group Project - Group 32
 
-## Project Content
-- Gymnasium v1.2.2
-- Part1 Sample Code
-- Part2 Sample Code
-- Part3 Sample Code
-  
-## Installation
+## 🌟 專案總覽 (Project Overview)
+
+本專案分為兩個部分：
+
+### 1. Frozen Lake RL Project (Part 2)
+
+#### 📂 檔案結構 (File Structure)
+
+位於 `part2/` 資料夾下：
+
+*   **`Agent.py`**: 核心邏輯。包含 `QLearningAgent` 類別，負責 Q-Table 的更新與動作選擇。
+*   **`CheatingEnv.py`**: 自定義環境。包含 `LessSlipperyFrozenLakeEnv`，提供更友善的學習環境。
+*   **`main.py`**: 主程式。負責解析參數、執行訓練迴圈、評估並儲存結果。
+*   **`Result/`**: 存放訓練結果圖表與數據。
+
+#### 📦 安裝需求 (Requirements) && dependencies
+
+請確保安裝以下 Python 套件：
+```
+part2
+├── gymnasium v1.2.2
+│   ├── cloudpickle v3.1.2
+│   ├── farama-notifications v0.0.4
+│   ├── numpy v2.3.5
+│   └── typing-extensions v4.15.0
+└── matplotlib v3.10.7
+    ├── contourpy v1.3.3
+    │   └── numpy v2.3.5
+    ├── cycler v0.12.1
+    ├── fonttools v4.61.0
+    ├── kiwisolver v1.4.9
+    ├── numpy v2.3.5
+    ├── packaging v25.0
+    ├── pillow v12.0.0
+    ├── pyparsing v3.2.5
+    └── python-dateutil v2.9.0.post0
+        └── six v1.17.0
+```
+```bash
+pip install -r requirements.txt
+```
+
+#### 🚀 如何執行 (How to Run)
+
+所有操作都可以透過 `main.py` 執行，支援豐富的命令列參數 (CLI)。
+
+##### 1. 訓練與評估 (Train & Evaluate)
+
+**基本指令 (預設設定)**:
+```bash
+python part2/main.py
+```
+*   預設使用 `8x8` 地圖，開啟滑動模式，並使用優化過的環境 (`cheating=True`)。
+
+**自定義參數範例**:
+在 4x4 地圖上訓練，關閉作弊模式 (使用原始 Gymnasium 環境)：
+```bash
+python part2/main.py \
+    --map 4x4 \
+    --runs 10 \
+    --cheating False \
+    --train_episodes 15000 \
+    --eval_episodes 1000 \
+    --is_slippery True \
+    --render_mode ansi
+```
+
+| 參數 | 預設值 | 說明 |
+| :--- | :--- | :--- |
+| `--map` | 8x8 | 地圖大小 (`4x4` 或 `8x8`) |
+| `--runs` | 10 | 實驗重複次數 (取平均用) |
+| `--cheating` | True | 是否使用自定義的 LessSlippery 環境 |
+| `--train_episodes` | 15000 | 訓練回合數 |
+| `--eval_episodes` | 1000 | 評估回合數 |
+| `--is_slippery` | True | 是否開啟滑動模式 |
+| `--render_mode` | ansi | 渲染模式 (`ansi` 文字模式 或 `human` 視窗模式) |
+
+##### 2. 查看幫助 (Help)
+查看所有可用的參數說明：
+```bash
+python part2/main.py --help
+```
+--- 
+
+### 2. Dungeon Crawler RL Project (Part 3)
+
+#### 📂 檔案結構 (File Structure)
+
+位於 `part3/` 資料夾下：
+
+*   **`dungeon_game.py`**: 遊戲核心邏輯 (Pygame)。包含所有類別 (`GameObject`, `Player`, `Enemy` 等) 與遊戲迴圈。
+*   **`dungeon_env.py`**: Gymnasium 環境封裝。將遊戲包裝成標準 RL 環境。
+*   **`agent.py`**: 包含 `BaseDQNAgent`, `DQNAgent`, `DoubleDQNAgent`, `QLearningAgent` 的實作。
+*   **`train.py`**: 統一的訓練與測試入口。支援命令列參數 (CLI) 來調整訓練設定。
+*   **`human.py`**: 人類手動試玩腳本。
+
+#### 📦 安裝需求 (Requirements) && Dependencies
+
+```
+part3
+├── gymnasium v1.2.2
+│   ├── cloudpickle v3.1.2
+│   ├── farama-notifications v0.0.4
+│   ├── numpy v2.3.5
+│   └── typing-extensions v4.15.0
+├── matplotlib v3.10.7
+│   ├── contourpy v1.3.3
+│   │   └── numpy v2.3.5
+│   ├── cycler v0.12.1
+│   ├── fonttools v4.61.0
+│   ├── kiwisolver v1.4.9
+│   ├── numpy v2.3.5
+│   ├── packaging v25.0
+│   ├── pillow v12.0.0
+│   ├── pyparsing v3.2.5
+│   └── python-dateutil v2.9.0.post0
+│       └── six v1.17.0
+├── pygame v2.6.1
+├── tensorflow v2.20.0
+│   ├── absl-py v2.3.1
+│   ├── astunparse v1.6.3
+│   │   ├── six v1.17.0
+│   │   └── wheel v0.45.1
+│   ├── flatbuffers v25.9.23
+│   ├── gast v0.7.0
+│   ├── google-pasta v0.2.0
+│   │   └── six v1.17.0
+│   ├── grpcio v1.76.0
+│   │   └── typing-extensions v4.15.0
+│   ├── h5py v3.15.1
+│   │   └── numpy v2.3.5
+│   ├── keras v3.12.0
+│   │   ├── absl-py v2.3.1
+│   │   ├── h5py v3.15.1 (*)
+│   │   ├── ml-dtypes v0.5.4
+│   │   │   └── numpy v2.3.5
+│   │   ├── namex v0.1.0
+│   │   ├── numpy v2.3.5
+│   │   ├── optree v0.18.0
+│   │   │   └── typing-extensions v4.15.0
+│   │   ├── packaging v25.0
+│   │   └── rich v14.2.0
+│   │       ├── markdown-it-py v4.0.0
+│   │       │   └── mdurl v0.1.2
+│   │       └── pygments v2.19.2
+│   ├── libclang v18.1.1
+│   ├── ml-dtypes v0.5.4 (*)
+│   ├── numpy v2.3.5
+│   ├── opt-einsum v3.4.0
+│   ├── packaging v25.0
+│   ├── protobuf v6.33.2
+│   ├── requests v2.32.5
+│   │   ├── certifi v2025.11.12
+│   │   ├── charset-normalizer v3.4.4
+│   │   ├── idna v3.11
+│   │   └── urllib3 v2.6.1
+│   ├── setuptools v80.9.0
+│   ├── six v1.17.0
+│   ├── tensorboard v2.20.0
+│   │   ├── absl-py v2.3.1
+│   │   ├── grpcio v1.76.0 (*)
+│   │   ├── markdown v3.10
+│   │   ├── numpy v2.3.5
+│   │   ├── packaging v25.0
+│   │   ├── pillow v12.0.0
+│   │   ├── protobuf v6.33.2
+│   │   ├── setuptools v80.9.0
+│   │   ├── tensorboard-data-server v0.7.2
+│   │   └── werkzeug v3.1.4
+│   │       └── markupsafe v3.0.3
+│   ├── termcolor v3.2.0
+│   ├── typing-extensions v4.15.0
+│   └── wrapt v2.0.1
+└── torch v2.9.1
+    ├── filelock v3.20.0
+    ├── fsspec v2025.12.0
+    ├── jinja2 v3.1.6
+    │   └── markupsafe v3.0.3
+    ├── networkx v3.6.1
+    ├── setuptools v80.9.0
+    ├── sympy v1.14.0
+    │   └── mpmath v1.3.0
+    └── typing-extensions v4.15.0
+```
 
 ```bash
-# 1. Create a virtual environment
-python -m venv .venv
-
-# 2. Activate the virtual environment
-source .venv/bin/activate
-
-# 3. Navigate to the Gymnasium directory
-cd group_project/Gymnasium
-
-# 4. Install Gymnasium in editable mode
-pip install -e .
-
-# 5. Install additional dependencies
-pip install "gymnasium[classic_control]"
-pip install matplotlib
+pip install -r requirements.txt
 ```
 
----
+#### 🚀 如何執行 (How to Run)
 
-## ✅ Verification
+所有操作都可以透過 `train.py` 或特定腳本執行。
 
-Run the following command to verify that the installation is successful:
+##### 1. 手動試玩 (Human Play)
+親自挑戰這個 11x12 的複雜迷宮！
+*   **操作**：方向鍵移動，`R` 重置，`ESC` 離開。
+*   **目標**：避開怪物與陷阱 -> 拿到鑰匙 (K) -> 打開門 (D) -> 取得寶藏 (T)。
 
 ```bash
-% pip list
+# 方法一：使用 human.py
+python part3/human.py
+
+# 方法二：使用 train.py
+python part3/train.py --mode human
 ```
 
-Sample Output from MacOS:
+##### 2. 訓練 AI (Train Agent)
+讓 AI 從零開始學習。程式會顯示訓練日誌並定期儲存模型。
 
+**基本指令**:
+```bash
+# 訓練 Standard DQN
+python part3/train.py --mode train --agent DQN
+
+# 訓練 Double DQN (推薦)
+python part3/train.py --mode train --agent DDQN
+
+# 訓練 Q-Learning
+python part3/train.py --mode train --agent QLearning
 ```
-Package              Version Editable project location
--------------------- ------- --------------------------------------------
-cloudpickle          3.1.2
-Farama-Notifications 0.0.4
-gymnasium            1.2.2   ./group_project/Gymnasium
-numpy                2.3.5
-pip                  24.3.1
-typing_extensions    4.15.0
+
+**進階參數**:
+你可以透過參數調整超參數 (Hyperparameters)：
+```bash
+usage: train.py [-h] [--agent {QLearning,DDQN,DQN}] [--episodes EPISODES] [--mode {train,test,human}] [--learning_rate LEARNING_RATE] [--gamma GAMMA] [--epsilon EPSILON]
+                [--epsilon_decay EPSILON_DECAY] [--min_epsilon MIN_EPSILON] [--batch BATCH] [--memory MEMORY] [--target_update_freq TARGET_UPDATE_FREQ]
+                options:
+  -h, --help                                -> show this help message and exit
+  --agent {QLearning,DDQN,DQN}              -> Type of agent to use
+  --episodes EPISODES                       -> Number of episodes to train
+  --mode {train,test,human}                 -> Mode to run the agent
+  --learning_rate LEARNING_RATE             -> Learning rate
+  --gamma GAMMA                             -> Discount factor
+  --epsilon EPSILON                         -> Initial epsilon
+  --epsilon_decay EPSILON_DECAY             -> Epsilon decay rate
+  --min_epsilon MIN_EPSILON                 -> Minimum epsilon
+  --batch BATCH                             -> Batch size
+  --memory MEMORY                           -> Memory size
+  --target_update_freq TARGET_UPDATE_FREQ   -> Target update frequency
 ```
 
-If your output matches the above (or is similar), your environment is correctly configured.
+| 參數 | 預設值 | 說明 |
+| :--- | :--- | :--- |
+| `--agent` | DQN | 選擇 Agent 類型 (`DQN`, `DDQN`, `QLearning`) |
+| `--episodes` | 2000 | 訓練總回合數 |
+| `--mode` | train | 選擇模式 (`train`, `test`, `human`) |
+| `--learning_rate` | 0.00025 | 學習率 |
+| `--gamma` | 0.99 | 折扣因子 (Discount Factor) |
+| `--epsilon` | 0.1 | 初始 epsilon |
+| `--epsilon_decay` | 0.995 | Epsilon 退火率 |
+| `--min_epsilon` | 0.01 | 最小 epsilon |
+| `--batch` | 512 | 批量大小 (Batch Size) |
+| `--memory` | 10000 | 變換記憶體大小 |
+| `--target_update_freq` | 1000 | Target Network 更新頻率 |
 
----
-
-## 🚀 Running the Project
-
-### **Part 1: Mountain Car**
-Train and test the reinforcement learning agent:
+##### 3. 測試模型 (Test Agent)
+載入訓練好的模型 (`final_model`) 並觀看 AI 實際遊玩。
 
 ```bash
-# Train the agent
-python mountain_car.py --train --episodes 5000
-
-# Render and visualize performance
-python mountain_car.py --render --episodes 10
+python part3/train.py --mode test --agent DDQN
 ```
-
-### **Part 2: Frozen Lake**
-Run the Frozen Lake environment:
-
-```bash
-python frozen_lake.py
-```
-
-### **Part 3: OOP Project Environment**
-Execute the custom OOP environment:
-
-```bash
-python oop_project_env.py
-```
-
-**Tip:**  
-If you’re on Windows, replace  
-```bash
-source .venv/bin/activate
-```  
-with  
-```bash
-.venv\Scripts\activate
-```
+*   注意：測試模式會讀取 `Result/{agent}/result/final_model.pth`，請先確保訓練完成。

@@ -2,16 +2,17 @@
 
 這是一個基於 **Gymnasium Frozen Lake** 環境的強化學習專案。我們實作了 Q-Learning Agent，並針對滑動 (Slippery) 環境進行了優化，甚至設計了一個更容易學習的自定義環境 (`CheatingEnv`)。
 
-## 🌟 專案特色 (Features)
-
-1.  **Q-Learning 實作優化**:
+## 🌟 專案總覽 (Overview)
+1. **Q-Learning 實作**:
     *   實作了標準的 Q-Learning 演算法。
+
+2. **Q-Learning 優化**:
     *   使用環境的轉移機率 (Transition Probability, `env.unwrapped.P`) 來計算期望目標值，加速收斂 (Model-Based approach)。
 
-2.  **自定義環境 (Cheating Environment)**:
+3. **自定義環境 (Cheating Environment)**:
     *   **LessSlipperyFrozenLakeEnv**: 修改自 Gymnasium 的原始環境，降低了冰面滑動的機率，讓 Agent 更容易學習到有效策略。
 
-3.  **完整的實驗數據**:
+4. **完整的實驗數據**:
     *   在 4x4 與 8x8 的滑動地圖上進行測試。
     *   4x4 Slippery map 成功率穩定在 **74%** 左右。
     *   8x8 Slippery map 成功率穩定在 **63%** 左右。
