@@ -1,92 +1,27 @@
-# OOP Group Project - Group 32
+# Dungeon Crawler RL Project (Part 3)
 
-## 🌟 專案總覽 (Project Overview)
+這是一個結合 **物件導向程式設計 (OOP)** 與 **強化學習 (Reinforcement Learning)** 的期末專案。我們從零開始打造了一個符合 Gymnasium 標準的地牢探險環境，並實作了多種 RL Agent (Q-Learning, DQN, Double DQN) 來自動破解關卡。
 
-本專案分為兩個部分：
+## 🌟 專案特色 (Features)
 
-### 1. Frozen Lake RL Project (Part 2)
+1.  **物件導向架構 (OOP Architecture)**:
+    *   使用 `GameObject` 作為基底類別，衍生出 `Character` (角色) 與 `Item` (物品)。
+    *   利用 **多型 (Polymorphism)** 處理不同物件的互動邏輯 (如：撞牆、踩陷阱、撿鑰匙、開門)。
+    *   利用 **繼承 (Inheritance)** 實作 `Player` 與 `Enemy`，共享移動邏輯但擁有不同的行為模式。
 
-#### 📂 檔案結構 (File Structure)
+2.  **自定義 Gymnasium 環境 (Custom Environment)**:
+    *   完全符合 Gymnasium API 標準 (`reset`, `step`, `render`)。
+    *   支援多種觀察空間 (Observation Space)：
+        *   **純量 (Scalar)**: 供 Q-Learning 使用 (座標, 狀態)。
+        *   **多模態 (Multimodal)**: 供 DQN 使用 (圖像 + 純量)。
+    *   設計了包含獎勵 (Reward) 與懲罰 (Penalty) 的機制來引導 Agent 學習。
 
-位於 `part2/` 資料夾下：
+3.  **多種 RL 演算法實作**:
+    *   **Q-Learning**: 表格型強化學習，適合簡單狀態。
+    *   **DQN (Deep Q-Network)**: 結合 CNN 與神經網路，處理圖像輸入。
+    *   **Double DQN (DDQN)**: 改進版 DQN，減少價值高估問題，提升穩定性。
 
-*   **`Agent.py`**: 核心邏輯。包含 `QLearningAgent` 類別，負責 Q-Table 的更新與動作選擇。
-*   **`CheatingEnv.py`**: 自定義環境。包含 `LessSlipperyFrozenLakeEnv`，提供更友善的學習環境。
-*   **`main.py`**: 主程式。負責解析參數、執行訓練迴圈、評估並儲存結果。
-*   **`Result/`**: 存放訓練結果圖表與數據。
-
-#### 📦 安裝需求 (Requirements) && dependencies
-
-請確保安裝以下 Python 套件：
-```
-part2
-├── gymnasium v1.2.2
-│   ├── cloudpickle v3.1.2
-│   ├── farama-notifications v0.0.4
-│   ├── numpy v2.3.5
-│   └── typing-extensions v4.15.0
-└── matplotlib v3.10.7
-    ├── contourpy v1.3.3
-    │   └── numpy v2.3.5
-    ├── cycler v0.12.1
-    ├── fonttools v4.61.0
-    ├── kiwisolver v1.4.9
-    ├── numpy v2.3.5
-    ├── packaging v25.0
-    ├── pillow v12.0.0
-    ├── pyparsing v3.2.5
-    └── python-dateutil v2.9.0.post0
-        └── six v1.17.0
-```
-```bash
-pip install -r requirements.txt
-```
-
-#### 🚀 如何執行 (How to Run)
-
-所有操作都可以透過 `main.py` 執行，支援豐富的命令列參數 (CLI)。
-
-##### 1. 訓練與評估 (Train & Evaluate)
-
-**基本指令 (預設設定)**:
-```bash
-python part2/main.py
-```
-*   預設使用 `8x8` 地圖，開啟滑動模式，並使用優化過的環境 (`cheating=True`)。
-
-**自定義參數範例**:
-在 4x4 地圖上訓練，關閉作弊模式 (使用原始 Gymnasium 環境)：
-```bash
-python part2/main.py \
-    --map 4x4 \
-    --runs 10 \
-    --cheating False \
-    --train_episodes 15000 \
-    --eval_episodes 1000 \
-    --is_slippery True \
-    --render_mode ansi
-```
-
-| 參數 | 預設值 | 說明 |
-| :--- | :--- | :--- |
-| `--map` | 8x8 | 地圖大小 (`4x4` 或 `8x8`) |
-| `--runs` | 10 | 實驗重複次數 (取平均用) |
-| `--cheating` | True | 是否使用自定義的 LessSlippery 環境 |
-| `--train_episodes` | 15000 | 訓練回合數 |
-| `--eval_episodes` | 1000 | 評估回合數 |
-| `--is_slippery` | True | 是否開啟滑動模式 |
-| `--render_mode` | ansi | 渲染模式 (`ansi` 文字模式 或 `human` 視窗模式) |
-
-##### 2. 查看幫助 (Help)
-查看所有可用的參數說明：
-```bash
-python part2/main.py --help
-```
---- 
-
-### 2. Dungeon Crawler RL Project (Part 3)
-
-#### 📂 檔案結構 (File Structure)
+## 📂 檔案結構 (File Structure)
 
 位於 `part3/` 資料夾下：
 
@@ -96,7 +31,9 @@ python part2/main.py --help
 *   **`train.py`**: 統一的訓練與測試入口。支援命令列參數 (CLI) 來調整訓練設定。
 *   **`human.py`**: 人類手動試玩腳本。
 
-#### 📦 安裝需求 (Requirements) && Dependencies
+## 📦 安裝需求 (Requirements) && Dependencies
+
+請確保安裝以下 Python 套件：
 
 ```
 part3
@@ -189,11 +126,11 @@ part3
 pip install -r requirements.txt
 ```
 
-#### 🚀 如何執行 (How to Run)
+## 🚀 如何執行 (How to Run)
 
 所有操作都可以透過 `train.py` 或特定腳本執行。
 
-##### 1. 手動試玩 (Human Play)
+### 1. 手動試玩 (Human Play)
 親自挑戰這個 11x12 的複雜迷宮！
 *   **操作**：方向鍵移動，`R` 重置，`ESC` 離開。
 *   **目標**：避開怪物與陷阱 -> 拿到鑰匙 (K) -> 打開門 (D) -> 取得寶藏 (T)。
@@ -206,7 +143,7 @@ python part3/human.py
 python part3/train.py --mode human
 ```
 
-##### 2. 訓練 AI (Train Agent)
+### 2. 訓練 AI (Train Agent)
 讓 AI 從零開始學習。程式會顯示訓練日誌並定期儲存模型。
 
 **基本指令**:
@@ -255,10 +192,28 @@ usage: train.py [-h] [--agent {QLearning,DDQN,DQN}] [--episodes EPISODES] [--mod
 | `--memory` | 10000 | 變換記憶體大小 |
 | `--target_update_freq` | 1000 | Target Network 更新頻率 |
 
-##### 3. 測試模型 (Test Agent)
+### 3. 測試模型 (Test Agent)
 載入訓練好的模型 (`final_model`) 並觀看 AI 實際遊玩。
 
 ```bash
 python part3/train.py --mode test --agent DDQN
 ```
 *   注意：測試模式會讀取 `Result/{agent}/result/final_model.pth`，請先確保訓練完成。
+
+## 🎮 遊戲規則 (Game Rules)
+
+*   **地圖**: 11x12 的大型迷宮。
+*   **目標**: 拿到 **寶藏 (Treasure, 📦)**。
+*   **障礙**:
+    *   **牆壁 (Wall)**: 無法穿越。
+    *   **門 (Door)**: 鎖住的，需要鑰匙才能通過。
+    *   **陷阱 (Trap)**: 踩到會扣血 (-1 HP) 並扣分。
+    *   **怪物 (Enemy)**: 3 隻巡邏怪，碰到會大量扣血 (-1 HP) 並重罰。
+*   **道具**:
+    *   **鑰匙 (Key)**: 藏在迷宮某處，可開啟門。
+
+## 📈 學習成果 (Results)
+經過訓練後，Double DQN Agent 能夠展現出穩定的策略：
+1.  有效避開移動中的怪物。
+2.  繞過陷阱區域。
+3.  準確地撿起鑰匙並開啟大門。

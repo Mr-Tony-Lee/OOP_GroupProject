@@ -2,7 +2,7 @@ import pygame
 import sys
 from dungeon_game import DungeonGame, Direction
 
-def main():
+def human_mode():
     # Initialize the game
     # no_graphics=False 確保開啟視窗
     game = DungeonGame(no_graphics=False)
@@ -42,4 +42,4 @@ def main():
     sys.exit()
 
 if __name__ == "__main__":
-    main()
+    human_mode()

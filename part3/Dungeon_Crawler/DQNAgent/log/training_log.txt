@@ -1,4 +1,0 @@
-Start Training with DQN...
-Episode 50/2000, Avg Reward (Last 50): -303.67, Best: -160.40, Epsilon: 0.8021
-Episode 100/2000, Avg Reward (Last 50): -290.09, Best: -158.90, Epsilon: 0.6337
-Episode 150/2000, Avg Reward (Last 50): -254.54, Best: -110.70, Epsilon: 0.4932
