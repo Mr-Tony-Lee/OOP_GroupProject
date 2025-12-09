@@ -362,6 +362,44 @@ class DQNDungeonEnv(DungeonCrawlerEnv):
 
 
 # ============================================================================
+# 子類 3: PPODungeonEnv - 與 PPOAgent 相容的單一張量觀察
+# ============================================================================
+class PPODungeonEnv(DungeonCrawlerEnv):
+    """
+    PPO 專用環境
+
+    觀察空間：單一 Box, shape = (8, H, W)
+    - 與 DQNDungeonEnv 相同的通道設計，方便直接餵給 PPO 的 CNN Actor-Critic。
+    - 若未來想改為多輸入(image + scalar)，可再新增一個變體。
+    """
+
+    def _define_observation_space(self):
+        return spaces.Box(
+            low=0,
+            high=1,
+            shape=(8, self.game.grid_rows, self.game.grid_cols),
+            dtype=np.float32
+        )
+
+    def _get_obs(self):
+        # 與 DQNDungeonEnv 相同：
+        obs = self.base_obs.copy()
+
+        # Player (Channel 1)
+        obs[1, self.game.player.row, self.game.player.col] = 1
+
+        # Enemies (Channel 2)
+        for enemy in self.game.enemies:
+            obs[2, enemy.row, enemy.col] = 1
+
+        # Has Key (Channel 7) - Global broadcast
+        if self.game.player.has_key:
+            obs[7, :, :] = 1
+
+        return obs
+
+
+# ============================================================================
 # 環境註冊
 # ============================================================================
 # 註冊 CNN 版本
@@ -380,4 +418,10 @@ register(
 register(
     id='dungeon-crawler-v0',
     entry_point='dungeon_env:DQNDungeonEnv',
+)
+
+# 註冊 PPO 版本
+register(
+    id='dungeon-crawler-ppo-v0',
+    entry_point='dungeon_env:PPODungeonEnv',
 )

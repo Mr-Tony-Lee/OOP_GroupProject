@@ -249,14 +249,14 @@ class DoubleDQNAgent(BaseDQNAgent):
     
     def learn(self, state, action, reward, next_state, done):
         """Double DQN 學習步驟"""
-        self.memory.add(state, action, reward, next_state, done)
+        self.memory.append((state, action, reward, next_state, done))
         
         # 衰減 Epsilon
         if done:
             self.epsilon = max(self.min_epsilon, self.epsilon * self.epsilon_decay)
         
         # 2. 如果樣本數不足，先不訓練
-        if self.memory.size < self.batch_size:
+        if len(self.memory) < self.batch_size:
             return
             
         # 3. 隨機抽樣 (Batch Training)
@@ -378,3 +378,200 @@ class DQNAgent(BaseDQNAgent):
         self.learn_step_counter += 1
         if self.learn_step_counter % self.target_update_freq == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
+
+
+# ============================================================================
+# PPO Agent (Proximal Policy Optimization)
+# ============================================================================ 
+
+class ActorCritic(nn.Module):
+    """ the Actor-Critic Network for PPO Agent """
+
+    def __init__(self, input_shape, action_dim):
+        super(ActorCritic, self).__init__()
+        # input_shape : (C, H, W)
+        self.conv1 = nn.Conv2d(input_shape[0], 32, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
+
+        # calculate flatten size
+        flatten_size = 64 * input_shape[1] * input_shape[2]
+        self.fc = nn.Linear(flatten_size, 512)
+
+        # Actor Head
+        self.actor = nn.Linear(512, action_dim)
+
+        # Critic Head
+        self.critic = nn.Linear(512, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.conv1(x))
+        x = torch.relu(self.conv2(x))
+        x = torch.relu(self.conv3(x))
+        x = x.view(x.size(0), -1)               # flatten
+        x = torch.relu(self.fc(x))
+
+        # Actor: output probabilities (logits)
+        action_logits = self.actor(x)
+
+        # Critic: output value
+        state_value = self.critic(x)
+
+        return action_logits, state_value
+    
+class PPOMemory:
+    """PPO specific memory for storing a batch of trajectories"""
+    def __init__(self, batch_size):
+        self.states = []                # current states
+        self.probs = []                 # action probabilities
+        self.vals = []                  # state values
+        self.actions = []               # actions taken
+        self.rewards = []               # rewards received
+        self.dones = []                 # episode done flags
+        self.batch_size = batch_size
+
+    def generate_batches(self):
+        n_states = len(self.states)
+        batch_start = np.arange(0, n_states, self.batch_size)
+        # produce random shuffled indices
+        indices = np.arange(n_states, dtype=np.int64)
+        np.random.shuffle(indices)
+
+        # create batches of indices
+        batches = []
+        for start in batch_start:
+            end = start + self.batch_size
+            batches.append(indices[start:end])
+
+        return np.array(self.states), np.array(self.actions), np.array(self.probs), np.array(self.vals), \
+                np.array(self.rewards), np.array(self.dones), batches
+
+
+    def store_memory(self, state, action, probs, vals, reward, done):
+        self.states.append(state)
+        self.actions.append(action)
+        self.probs.append(probs)
+        self.vals.append(vals)
+        self.rewards.append(reward)
+        self.dones.append(done)
+
+    def clear_memory(self):
+        self.states = []
+        self.probs = []
+        self.vals = []
+        self.actions = []
+        self.rewards = []
+        self.dones = []
+
+class PPOAgent(Agent):
+    """Policy based or Actor-Critic enhanced learning algorithm: Proximal Policy Optimization (PPO) Agent"""
+    def __init__(self, state_shape, action_space, learning_rate = 0.0003, gamma = 0.99, gae_lambda = 0.95, 
+                 policy_clip = 0.2, batch_size = 64, n_epochs = 10, update_interval = 2048):
+        super().__init__(action_space)
+        self.gamma = gamma                      # discount factor
+        self.policy_clip = policy_clip          # clip parameter for PPO
+        self.n_epochs = n_epochs                # number of epochs per update
+        self.gae_lambda = gae_lambda            # GAE lambda
+        self.update_interval = update_interval  # steps between updates
+
+        self.actor_critic = ActorCritic(state_shape, action_space.n).to(device)         # the Actor-Critic network
+        self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=learning_rate)   
+        self.memory = PPOMemory(batch_size)
+        self.step_counter = 0
+
+        # for storing last action and value
+        self.last_log_prob = None
+        self.last_value = None
+
+    def get_action(self, state):
+        # state shape: (C, H, W)
+        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)  # add batch dimension
+
+        with torch.no_grad():
+            logits, value = self.actor_critic(state_tensor)
+            dist = torch.distributions.Categorical(logits=logits)
+            action = dist.sample()
+            log_prob = dist.log_prob(action)
+
+        self.last_log_prob = log_prob.item()
+        self.last_value = value.item()
+
+        return action.item()
+    
+    def learn(self, state, action, reward, next_state, done):
+        # store experience in memor
+        self.memory.store_memory(state, action, self.last_log_prob, self.last_value, reward, done)
+        self.step_counter += 1
+
+        # update if enough steps collected
+        if self.step_counter % self.update_interval == 0:
+            self.update()
+
+    def update(self):
+        states, actions, old_probs, vals, rewards, dones, batches = self.memory.generate_batches()
+        values = vals
+        advantages = np.zeros(len(rewards), dtype=np.float32)
+
+        # calculate advantages using GAE
+        # using buffer to approximate next value
+        for t in range(len(rewards) - 1):
+            discount = 1
+            a_t = 0
+            for k in range(t, len(rewards) - 1):
+                a_t += discount * (rewards[k] + self.gamma * values[k + 1] * (1 - int(dones[k])) - values[k])
+                discount *= self.gamma * self.gae_lambda
+            advantages[t] = a_t
+
+        # trasnform to tensors (keep dtypes consistent)
+        advantages = torch.tensor(advantages, dtype=torch.float32, device=device)
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        values = torch.tensor(values, dtype=torch.float32, device=device)
+
+        for _ in range(self.n_epochs):
+            state_tensor = torch.FloatTensor(states).to(device)
+            old_probs_tensor = torch.tensor(old_probs, dtype=torch.float32, device=device)
+            actions_tensor = torch.tensor(actions, dtype=torch.long, device=device)
+
+            for batch in batches:
+                batch_states = state_tensor[batch]
+                batch_old_probs = old_probs_tensor[batch]
+                batch_actions = actions_tensor[batch]
+                batch_advantages = advantages[batch]
+                batch_values = values[batch]
+
+                # get new action probabilities and state values
+                logits, state_values = self.actor_critic(batch_states)
+                dist = torch.distributions.Categorical(logits=logits)
+
+                new_probs = dist.log_prob(batch_actions)
+                prob_ratio = torch.exp(new_probs - batch_old_probs)
+
+                # clipped surrogate objective
+                weighted_probs = prob_ratio * batch_advantages
+                clipped_probs = torch.clamp(prob_ratio, 1 - self.policy_clip, 1 + self.policy_clip) * batch_advantages
+
+                actor_loss = -torch.min(weighted_probs, clipped_probs).mean()
+
+                # critic loss (value function loss)
+                returns = batch_advantages + batch_values
+                critic_loss = (returns - state_values.squeeze()).pow(2).mean()
+
+                # total loss
+                total_loss = actor_loss + 0.5 * critic_loss
+
+                # update network
+                self.optimizer.zero_grad()
+                total_loss.backward()
+                self.optimizer.step()
+
+        # clear memory after update
+        self.memory.clear_memory()
+
+    def save(self, filename):
+        torch.save(self.actor_critic.state_dict(), filename)
+        print(f"PPO Model saved to {filename}")
+
+    def load(self, filename):
+        state_dict = torch.load(filename, map_location=device)
+        self.actor_critic.load_state_dict(state_dict)
+        print(f"PPO Model loaded from {filename}")
