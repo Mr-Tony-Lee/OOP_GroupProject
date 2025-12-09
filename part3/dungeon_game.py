@@ -88,8 +88,6 @@ class DungeonGame:
             if enemy.row == new_r and enemy.col == new_c:
                 hit_enemy = True
                 enemy.on_enter(self.player)
-                if not self.no_graphics:
-                    print(f"Ouch! Ran into a monster! HP: {self.player.hp}")
                 break
         
         if not hit_enemy and target_obj.can_pass(self.player):
@@ -100,8 +98,6 @@ class DungeonGame:
             
             if isinstance(target_obj, Treasure) and target_obj.collected:
                 self.game_over = True
-                if not self.no_graphics:
-                    print("You found the treasure!")
                 return True 
             
             if isinstance(target_obj, Key) and target_obj.collected:
@@ -111,11 +107,9 @@ class DungeonGame:
                 self.grid[new_r][new_c] = Floor(new_r, new_c)
             
             if isinstance(target_obj, Trap):
-                if not self.no_graphics:
-                    print(f"Ouch! Trap! HP: {self.player.hp}")
+                pass
         elif not hit_enemy:
-            if not self.no_graphics:
-                print("Bonk! Hit a wall or door.")
+            pass
 
         # 2. 怪物移動
         for enemy in self.enemies:
@@ -123,16 +117,12 @@ class DungeonGame:
             # 檢查怪物是否撞到玩家
             if enemy.row == self.player.row and enemy.col == self.player.col:
                 enemy.on_enter(self.player)
-                if not self.no_graphics:
-                    print(f"Monster attacked you! HP: {self.player.hp}")
+                pass
 
         # 檢查死亡
         if self.player.hp <= 0:
             self.game_over = True
-            if not self.no_graphics:
-                print("You died!")
             return True
-
         return False
 
     def render(self):

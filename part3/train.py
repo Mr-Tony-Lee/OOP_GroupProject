@@ -1,9 +1,11 @@
 import gymnasium as gym
-from agent import QLearningAgent, DQNAgent, CNNAgent
+from agent import QLearningAgent, DoubleDQNAgent, DQNAgent
 import matplotlib.pyplot as plt
 import os
 import dungeon_env
 import numpy as np
+import argparse
+from human import human_mode
 
 # ============================================================================
 # 狀態預處理函數
@@ -13,8 +15,8 @@ def preprocess_state(state, agent_type):
     根據 agent 類型預處理狀態
     
     - QLearning: 需要 (row, col, has_key) 三元組
-    - DQN: 需要 (8, H, W) 的 numpy array
-    - CNN: 需要 Dict {"image": ..., "scalars": ...}
+    - DoubleDQN: 需要 (8, H, W) 的 numpy array
+    - DQN: 需要 Dict {"image": ..., "scalars": ...}
     """
     if agent_type == "QLearning":
         # DQN 環境返回 (8, rows, cols)
@@ -30,53 +32,57 @@ def preprocess_state(state, agent_type):
         
         return (row, col, has_key)
     
-    elif agent_type == "CNN":
+    elif agent_type == "DQN":
         # CNN 環境返回 Dict，直接返回
         return state
     
-    else:  # DQN
-        # DQN 現在也使用 Dict 輸入 (Image + Scalar)
+    else:  # DoubleDQN
+        # DoubleDQN 現在也使用 Dict 輸入 (Image + Scalar)
         return state
 
 
 # ============================================================================
 # Agent 工廠函數
 # ============================================================================
-def get_agent(agent_type, env):
+def get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq):
     """根據 agent 類型創建相應的 agent"""
     if agent_type == "QLearning":
         return QLearningAgent(
             env.action_space,
-            learning_rate=0.1,
-            discount_factor=0.95,
-            epsilon=1.0,
-            epsilon_decay=0.999
-        )
-    
-    elif agent_type == "CNN":
-        # CNN 使用 DQN 環境的 CNN 版本
-        return CNNAgent(
-            observation_space=env.observation_space,
-            action_space=env.action_space,
-            learning_rate=0.00025,
-            gamma=0.99,
-            epsilon=1.0,
-            epsilon_decay=0.998,  # CNN 需要多一點時間探索
-            min_epsilon=0.05
+            learning_rate=learning_rate,
+            discount_factor=gamma,
+            epsilon=epsilon,
+            epsilon_decay=epsilon_decay
         )
     
     elif agent_type == "DQN":
-        # DQN 改用 observation_space (Dict)
+        # DQN (原 CNNAgent)
         return DQNAgent(
             observation_space=env.observation_space,
             action_space=env.action_space,
-            learning_rate=0.001,  # 調整為與 CNNAgent 相似
-            discount_factor=0.99,
-            epsilon=1.0,
-            epsilon_decay=0.995,  # 調整為與 CNNAgent 相似
-            min_epsilon=0.01,
-            batch_size=512,       # 調整為與 CNNAgent 相似
-            memory_size=50000
+            learning_rate=learning_rate,  
+            gamma=gamma,
+            epsilon=epsilon,
+            epsilon_decay=epsilon_decay,  
+            min_epsilon=min_epsilon,
+            batch_size=batch,       
+            memory_size=memory,
+            target_update_freq=target_update_freq 
+        )
+    
+    elif agent_type == "DoubleDQN":
+        # DoubleDQN (原 DQNAgent)
+        return DoubleDQNAgent(
+            observation_space=env.observation_space,
+            action_space=env.action_space,
+            learning_rate=learning_rate,  
+            gamma=gamma,
+            epsilon=epsilon,
+            epsilon_decay=epsilon_decay,  
+            min_epsilon=min_epsilon,
+            batch_size=batch,       
+            memory_size=memory,
+            target_update_freq=target_update_freq 
         )
     
     else:
@@ -88,10 +94,7 @@ def get_agent(agent_type, env):
 # ============================================================================
 def get_env_id(agent_type):
     """根據 agent 類型選擇合適的環境"""
-    if agent_type == "CNN":
-        return 'dungeon-crawler-cnn-v0'
-    elif agent_type == "DQN":
-        # DQN 現在使用 CNN 環境 (Dict Observation)
+    if agent_type == "DQN" or agent_type == "DoubleDQN":
         return 'dungeon-crawler-cnn-v0'
     else:  # QLearning
         return 'dungeon-crawler-dqn-v0'
@@ -100,14 +103,14 @@ def get_env_id(agent_type):
 # ============================================================================
 # 訓練函數
 # ============================================================================
-def train(agent_type="DQN"):
+def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, epsilon=1.0, epsilon_decay=0.998, min_epsilon=0.05, batch=512, memory=50000, target_update_freq=1000):
     """
     訓練指定類型的 Agent
     
     支援的 agent_type:
     - "QLearning": 傳統 Q-Learning
-    - "DQN": Deep Q-Network
-    - "CNN": CNN-based DQN
+    - "DoubleDQN": Double Deep Q-Network
+    - "DQN": Standard DQN (formerly CNN based)
     """
     print(f"Training {agent_type} Agent...")
     
@@ -116,10 +119,10 @@ def train(agent_type="DQN"):
     env = gym.make(env_id, render_mode=None)
     
     # 建立 Agent
-    agent = get_agent(agent_type, env)
+    agent = get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq)
 
     # 設定路徑
-    base_dir = f"{agent_type}Agent"
+    base_dir = f"Result/{agent_type}Agent"
     log_dir = os.path.join(base_dir, "log")
     result_dir = os.path.join(base_dir, "result")
     
@@ -128,9 +131,7 @@ def train(agent_type="DQN"):
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
-    episodes = 2000
     rewards_history = []
-    best_reward = -float('inf')
 
     log_path = os.path.join(log_dir, "training_log.txt")
     event_log_path = os.path.join(log_dir, "event_log.txt")
@@ -139,7 +140,7 @@ def train(agent_type="DQN"):
         log_file.write(f"Start Training with {agent_type}...\n")
         event_file.write("Episode, Event\n")
         print(f"Start Training... (Logging to {log_path})")
-        
+        best_reward = -float('inf')
         for episode in range(episodes):
             state, info = env.reset()
             state = preprocess_state(state, agent_type)  # Preprocess
@@ -170,12 +171,9 @@ def train(agent_type="DQN"):
             rewards_history.append(total_reward)
             event_file.flush()  # 確保即時寫入
             
-            # 保存最佳模型
+            # 更新最佳獎勵
             if total_reward > best_reward:
                 best_reward = total_reward
-                model_filename = "best_model.pkl" if agent_type == "QLearning" else "best_model.pth"
-                model_path = os.path.join(result_dir, model_filename)
-                agent.save(model_path)
             
             # 定期記錄訓練狀況
             if (episode + 1) % 50 == 0:
@@ -184,6 +182,7 @@ def train(agent_type="DQN"):
                 log_file.write(log_msg)
                 log_file.flush()
                 print(log_msg.strip())
+                best_reward = -float('inf')
 
         log_file.write("Training Finished!\n")
         print(f"Training Finished! Best Reward: {best_reward:.2f}")
@@ -214,8 +213,8 @@ def test(agent_type="DQN"):
     
     支援的 agent_type:
     - "QLearning": 傳統 Q-Learning
-    - "DQN": Deep Q-Network
-    - "CNN": CNN-based DQN
+    - "DoubleDQN": Double Deep Q-Network
+    - "DQN": Standard DQN (formerly CNN based)
     """
     print(f"Testing {agent_type} Agent...")
     
@@ -226,26 +225,21 @@ def test(agent_type="DQN"):
     # 建立 Agent (Epsilon=0 用於貪心策略)
     if agent_type == "QLearning":
         agent = QLearningAgent(env.action_space, epsilon=0.0)
-    elif agent_type == "CNN":
-        agent = CNNAgent(env.observation_space, env.action_space, epsilon=0.0)
     elif agent_type == "DQN":
         agent = DQNAgent(env.observation_space, env.action_space, epsilon=0.0)
+    elif agent_type == "DoubleDQN":
+        agent = DoubleDQNAgent(env.observation_space, env.action_space, epsilon=0.0)
     else:
         raise ValueError(f"Unknown agent type: {agent_type}")
     
     # 設定路徑
-    base_dir = f"{agent_type}Agent"
+    base_dir = f"Result/{agent_type}Agent"
     result_dir = os.path.join(base_dir, "result")
     
-    # 優先嘗試讀取最佳模型，再試最終模型
-    model_filename = "best_model.pkl" if agent_type == "QLearning" else "best_model.pth"
+    # 讀取最終模型
+    model_filename = "final_model.pkl" if agent_type == "QLearning" else "final_model.pth"
     model_path = os.path.join(result_dir, model_filename)
     
-    if not os.path.exists(model_path):
-        print(f"Best model not found at {model_path}, trying final model...")
-        model_filename = "final_model.pkl" if agent_type == "QLearning" else "final_model.pth"
-        model_path = os.path.join(result_dir, model_filename)
-
     try:
         agent.load(model_path)
         print(f"Successfully loaded model: {model_path}")
@@ -276,14 +270,7 @@ def test(agent_type="DQN"):
                     done = True
                     print("Test interrupted by user.")
 
-    print(f"Test Finished. Total Reward: {total_reward}")
-    
-    # 測試結束後暫停一下，讓使用者看到結果
-    if env.unwrapped.render_mode == 'human':
-        import time
-        print("Closing in 3 seconds...")
-        time.sleep(3)
-        
+    print(f"Test Finished. Total Reward: {total_reward}")    
     env.close()
 
 
@@ -291,10 +278,39 @@ def test(agent_type="DQN"):
 # 主程式
 # ============================================================================
 if __name__ == "__main__":
-    # 選擇要使用的 Agent: "QLearning", "DQN" 或 "CNN"
-    AGENT_TYPE = "DQN"
-    # AGENT_TYPE = "CNN"
-    # AGENT_TYPE = "QLearning"
+
+    # 從 command 讀入資訊
+    parser = argparse.ArgumentParser(description="Train or test an agent")
+    parser.add_argument("--agent", type=str, default="DQN", choices=["QLearning", "DDQN", "DQN"], help="Type of agent to use")
+    parser.add_argument("--episodes", type=int, default=2000, help="Number of episodes to train")
+    parser.add_argument("--mode", type=str, default="train", choices=["train", "test", "human"], help="Mode to run the agent")
+    parser.add_argument("--learning_rate", type=float, default=0.00025, help="Learning rate")
+    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
+    parser.add_argument("--epsilon", type=float, default=1.0, help="Initial epsilon")
+    parser.add_argument("--epsilon_decay", type=float, default=0.998, help="Epsilon decay rate")
+    parser.add_argument("--min_epsilon", type=float, default=0.05, help="Minimum epsilon")
+    parser.add_argument("--batch", type=int, default=512, help="Batch size")
+    parser.add_argument("--memory", type=int, default=50000, help="Memory size")
+    parser.add_argument("--target_update_freq", type=int, default=1000, help="Target update frequency")
+
+    args = parser.parse_args()
+    if args.agent == "DDQN":
+        args.agent = "DoubleDQN"
+    AGENT_TYPE = args.agent
+    EPISODES = args.episodes
+    MODE = args.mode
+    LEARNING_RATE = args.learning_rate
+    GAMMA = args.gamma
+    EPSILON = args.epsilon
+    EPSILON_DECAY = args.epsilon_decay
+    MIN_EPSILON = args.min_epsilon
+    BATCH = args.batch
+    MEMORY = args.memory
+    TARGET_UPDATE_FREQ = args.target_update_freq
     
-    train(AGENT_TYPE)
-    # test(AGENT_TYPE)
+    if MODE == "human":
+        human_mode()
+    elif MODE == "train":
+        train(AGENT_TYPE, EPISODES, LEARNING_RATE, GAMMA, EPSILON, EPSILON_DECAY, MIN_EPSILON, BATCH, MEMORY, TARGET_UPDATE_FREQ)
+    else:
+        test(AGENT_TYPE)
