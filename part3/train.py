@@ -1,5 +1,5 @@
 import gymnasium as gym
-from agent import QLearningAgent, DoubleDQNAgent, DQNAgent
+from agent import QLearningAgent, DoubleDQNAgent, DQNAgent, PPOAgent
 import matplotlib.pyplot as plt
 import os
 import dungeon_env
@@ -17,6 +17,7 @@ def preprocess_state(state, agent_type):
     - QLearning: 需要 (row, col, has_key) 三元組
     - DoubleDQN: 需要 (8, H, W) 的 numpy array
     - DQN: 需要 Dict {"image": ..., "scalars": ...}
+    - PPO: 需要 (8, H, W) 的 numpy array
     """
     if agent_type == "QLearning":
         # DQN 環境返回 (8, rows, cols)
@@ -34,6 +35,9 @@ def preprocess_state(state, agent_type):
     
     elif agent_type == "DQN":
         # CNN 環境返回 Dict，直接返回
+        return state
+    
+    elif agent_type == "PPO":
         return state
     
     else:  # DoubleDQN
@@ -85,6 +89,20 @@ def get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min
             target_update_freq=target_update_freq 
         )
     
+    elif agent_type == "PPO":
+        state_shape = env.observation_space.shape
+        return PPOAgent(
+            state_shape=state_shape,
+            action_space=env.action_space,
+            learning_rate=learning_rate,
+            gamma=gamma,
+            gae_lambda=0.95,
+            policy_clip=0.2,
+            batch_size=batch,
+            n_epochs=10,
+            update_interval=target_update_freq
+        )
+    
     else:
         raise ValueError(f"Unknown agent type: {agent_type}")
 
@@ -96,6 +114,8 @@ def get_env_id(agent_type):
     """根據 agent 類型選擇合適的環境"""
     if agent_type == "DQN" or agent_type == "DoubleDQN":
         return 'dungeon-crawler-cnn-v0'
+    elif agent_type == "PPO":
+        return 'dungeon-crawler-ppo-v0'
     else:  # QLearning
         return 'dungeon-crawler-dqn-v0'
 
@@ -178,7 +198,10 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
             # 定期記錄訓練狀況
             if (episode + 1) % 50 == 0:
                 avg_reward = np.mean(rewards_history[-50:])
-                log_msg = f"Episode {episode+1}/{episodes}, Avg Reward (Last 50): {avg_reward:.2f}, Best: {best_reward:.2f}, Epsilon: {agent.epsilon:.4f}\n"
+                if hasattr(agent, 'epsilon'):
+                    log_msg = f"Episode {episode+1}/{episodes}, Avg Reward (Last 50): {avg_reward:.2f}, Best: {best_reward:.2f}, Epsilon: {agent.epsilon:.4f}\n"
+                else:
+                    log_msg = f"Episode {episode+1}/{episodes}, Avg Reward (Last 50): {avg_reward:.2f}, Best: {best_reward:.2f}\n"
                 log_file.write(log_msg)
                 log_file.flush()
                 print(log_msg.strip())
@@ -215,6 +238,7 @@ def test(agent_type="DQN"):
     - "QLearning": 傳統 Q-Learning
     - "DoubleDQN": Double Deep Q-Network
     - "DQN": Standard DQN (formerly CNN based)
+    - "PPO": Proximal Policy Optimization
     """
     print(f"Testing {agent_type} Agent...")
     
@@ -229,6 +253,9 @@ def test(agent_type="DQN"):
         agent = DQNAgent(env.observation_space, env.action_space, epsilon=0.0)
     elif agent_type == "DoubleDQN":
         agent = DoubleDQNAgent(env.observation_space, env.action_space, epsilon=0.0)
+    elif agent_type == "PPO":
+        state_shape = env.observation_space.shape
+        agent = PPOAgent(state_shape=state_shape, action_space=env.action_space)
     else:
         raise ValueError(f"Unknown agent type: {agent_type}")
     
@@ -281,7 +308,7 @@ if __name__ == "__main__":
 
     # 從 command 讀入資訊
     parser = argparse.ArgumentParser(description="Train or test an agent")
-    parser.add_argument("--agent", type=str, default="DQN", choices=["QLearning", "DDQN", "DQN"], help="Type of agent to use")
+    parser.add_argument("--agent", type=str, default="DQN", choices=["QLearning", "DDQN", "DQN", "PPO"], help="Type of agent to use")
     parser.add_argument("--episodes", type=int, default=2000, help="Number of episodes to train")
     parser.add_argument("--mode", type=str, default="train", choices=["train", "test", "human"], help="Mode to run the agent")
     parser.add_argument("--learning_rate", type=float, default=0.00025, help="Learning rate")

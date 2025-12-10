@@ -523,7 +523,7 @@ class PPOAgent(Agent):
                 discount *= self.gamma * self.gae_lambda
             advantages[t] = a_t
 
-        # trasnform to tensors (keep dtypes consistent)
+        # transform to tensors (keep dtypes consistent)
         advantages = torch.tensor(advantages, dtype=torch.float32, device=device)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
         values = torch.tensor(values, dtype=torch.float32, device=device)
@@ -554,7 +554,7 @@ class PPOAgent(Agent):
                 actor_loss = -torch.min(weighted_probs, clipped_probs).mean()
 
                 # critic loss (value function loss)
-                returns = batch_advantages + batch_values
+                returns = (batch_advantages + batch_values).detach()
                 critic_loss = (returns - state_values.squeeze()).pow(2).mean()
 
                 # total loss
