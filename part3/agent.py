@@ -465,7 +465,7 @@ class PPOMemory:
         self.dones = []
 
 class PPOAgent(Agent):
-    """Policy based or Actor-Critic enhanced learning algorithm: Proximal Policy Optimization (PPO) Agent"""
+    """Policy based or Actor-Critic reinforcement learning algorithm: Proximal Policy Optimization (PPO) Agent"""
     def __init__(self, state_shape, action_space, learning_rate = 0.0003, gamma = 0.99, gae_lambda = 0.95, 
                  policy_clip = 0.2, batch_size = 64, n_epochs = 10, update_interval = 2048):
         super().__init__(action_space)
@@ -500,7 +500,7 @@ class PPOAgent(Agent):
         return action.item()
     
     def learn(self, state, action, reward, next_state, done):
-        # store experience in memor
+        # store experience in memory
         self.memory.store_memory(state, action, self.last_log_prob, self.last_value, reward, done)
         self.step_counter += 1
 

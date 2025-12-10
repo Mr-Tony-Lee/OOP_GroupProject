@@ -48,7 +48,7 @@ def preprocess_state(state, agent_type):
 # ============================================================================
 # Agent 工廠函數
 # ============================================================================
-def get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq):
+def get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq, gae_lambda=0.95, policy_clip=0.2, n_epochs=10):
     """根據 agent 類型創建相應的 agent"""
     if agent_type == "QLearning":
         return QLearningAgent(
@@ -96,10 +96,10 @@ def get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min
             action_space=env.action_space,
             learning_rate=learning_rate,
             gamma=gamma,
-            gae_lambda=0.95,
-            policy_clip=0.2,
+            gae_lambda=gae_lambda,
+            policy_clip=policy_clip,
             batch_size=batch,
-            n_epochs=10,
+            n_epochs=n_epochs,
             update_interval=target_update_freq
         )
     
@@ -123,7 +123,7 @@ def get_env_id(agent_type):
 # ============================================================================
 # 訓練函數
 # ============================================================================
-def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, epsilon=1.0, epsilon_decay=0.998, min_epsilon=0.05, batch=512, memory=50000, target_update_freq=1000):
+def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, epsilon=1.0, epsilon_decay=0.998, min_epsilon=0.05, batch=512, memory=50000, target_update_freq=1000, gae_lambda=0.95, policy_clip=0.2, n_epochs=10):
     """
     訓練指定類型的 Agent
     
@@ -131,6 +131,7 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
     - "QLearning": 傳統 Q-Learning
     - "DoubleDQN": Double Deep Q-Network
     - "DQN": Standard DQN (formerly CNN based)
+    - "PPO": Proximal Policy Optimization
     """
     print(f"Training {agent_type} Agent...")
     
@@ -139,7 +140,7 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
     env = gym.make(env_id, render_mode=None)
     
     # 建立 Agent
-    agent = get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq)
+    agent = get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq, gae_lambda, policy_clip, n_epochs)
 
     # 設定路徑
     base_dir = f"Result/{agent_type}Agent"
@@ -319,6 +320,9 @@ if __name__ == "__main__":
     parser.add_argument("--batch", type=int, default=512, help="Batch size")
     parser.add_argument("--memory", type=int, default=50000, help="Memory size")
     parser.add_argument("--target_update_freq", type=int, default=1000, help="Target update frequency")
+    parser.add_argument("--gae_lambda", type=float, default=0.95, help="GAE lambda (for PPO)")
+    parser.add_argument("--policy_clip", type=float, default=0.2, help="Policy clip epsilon (for PPO)")
+    parser.add_argument("--n_epochs", type=int, default=10, help="Number of epochs per update (for PPO)")
 
     args = parser.parse_args()
     if args.agent == "DDQN":
@@ -334,10 +338,13 @@ if __name__ == "__main__":
     BATCH = args.batch
     MEMORY = args.memory
     TARGET_UPDATE_FREQ = args.target_update_freq
+    GAE_LAMBDA = args.gae_lambda
+    POLICY_CLIP = args.policy_clip
+    N_EPOCHS = args.n_epochs
     
     if MODE == "human":
         human_mode()
     elif MODE == "train":
-        train(AGENT_TYPE, EPISODES, LEARNING_RATE, GAMMA, EPSILON, EPSILON_DECAY, MIN_EPSILON, BATCH, MEMORY, TARGET_UPDATE_FREQ)
+        train(AGENT_TYPE, EPISODES, LEARNING_RATE, GAMMA, EPSILON, EPSILON_DECAY, MIN_EPSILON, BATCH, MEMORY, TARGET_UPDATE_FREQ, GAE_LAMBDA, POLICY_CLIP, N_EPOCHS)
     else:
         test(AGENT_TYPE)
