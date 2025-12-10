@@ -177,7 +177,6 @@ class BaseDQNAgent(Agent):
         self.memory_size = memory_size
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"Double DQN Agent using device: {self.device}")
         
         # 取得輸入形狀
         self.img_shape = observation_space['image'].shape
@@ -246,6 +245,7 @@ class DoubleDQNAgent(BaseDQNAgent):
         super().__init__(observation_space, action_space, learning_rate, 
                          gamma, epsilon, epsilon_decay, min_epsilon, batch_size, 
                          memory_size, target_update_freq)
+        print(f"Double DQN Agent using device: {self.device}")
     
     def learn(self, state, action, reward, next_state, done):
         """Double DQN 學習步驟"""
@@ -326,6 +326,7 @@ class DQNAgent(BaseDQNAgent):
         super().__init__(observation_space, action_space, learning_rate, 
                          gamma, epsilon, epsilon_decay, min_epsilon, batch_size, 
                          memory_size, target_update_freq)
+        print(f"DQN Agent using device: {self.device}")
     
     def learn(self, state, action, reward, next_state, done):
         """DQN Agent 的學習步驟"""
