@@ -290,3 +290,13 @@ python part3/train.py --mode eval --agent DQN --episodes 50
 
 *   輸出格式：`Mean Reward: <平均> ± <標準差>`。
 *   PPO 評估使用 `deterministic=True`，避免訓練時的探索噪音。
+
+---
+
+## 👥 工作分工 (Contribution List)
+
+| 組員 | 學號 | Github username | 負責項目 |
+|------|------|--------|---------------------|
+| 徐子皓 | B124040036 | HaoHao041003 | part3 CNN agent ... |
+| 陳彥維 | B123040039 | Shuaige0709 | part3 PPO agent, eval mode, AgentSpec class, UML  |
+| 李承諺 | B123040032 | Mr-Tony-Lee | part2, part3 ... |
