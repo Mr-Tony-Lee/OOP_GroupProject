@@ -9,11 +9,6 @@ from human import human_mode
 from dataclasses import dataclass
 from typing import Callable
 
-import warnings
-# 靜音 pygame/pkg_resources 的棄用警告
-warnings.filterwarnings("ignore", category=UserWarning, module=r"pygame\.pkgdata")
-warnings.filterwarnings("ignore", category=UserWarning, message=r"pkg_resources is deprecated as an API.*")
-
 
 # ============================================================================
 # Agent spec (centralized configuration)
@@ -104,13 +99,6 @@ def get_spec(agent_type: str) -> AgentSpec:
     
 import random, torch, numpy as np
 
-# For testing
-def set_seed(seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
 
 
 # ============================================================================
@@ -127,7 +115,6 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
     - "PPO": Proximal Policy Optimization
     """
     print(f"Training {agent_type} Agent...")
-    set_seed(42)
 
     agent_spec = get_spec(agent_type)
     
@@ -473,4 +460,3 @@ if __name__ == "__main__":
 
 
 
-# python train.py --agent PPO --episodes 2000 --learning_rate 0.0001 --batch 64 --target_update_freq 1024 --gae_lambda 0.95 --policy_clip 0.2 --n_epochs 10
