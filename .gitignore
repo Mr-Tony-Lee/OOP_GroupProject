@@ -214,3 +214,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Training Results (part3)
+Result/
+*.pkl
+*.pth
+training_log.txt
+event_log.txt
+training_curve.png
+
+# Training Results (part2)
+Class_version/*/
+Origin/
+
