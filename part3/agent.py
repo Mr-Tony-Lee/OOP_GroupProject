@@ -21,8 +21,13 @@ class Agent(ABC):
         self.action_space = action_space
 
     @abstractmethod
-    def get_action(self, state):
-        """根據狀態獲取動作"""
+    def get_action(self, state, deterministic: bool = False):
+        """根據狀態獲取動作
+
+        Args:
+            state: environment observation
+            deterministic: True for greedy action selection (no exploration)
+        """
         pass
 
     @abstractmethod
@@ -73,13 +78,17 @@ class QLearningAgent(Agent):
             self.q_table[state_key] = np.zeros(self.action_space.n)
         return self.q_table[state_key]
 
-    def get_action(self, state):
+    def get_action(self, state, deterministic: bool = False):
         """使用 Epsilon-Greedy 策略選擇動作"""
+        q_values = self.get_q_values(state)
+
+        if deterministic:
+            return np.argmax(q_values)  # greedy
+
         if random.random() < self.epsilon:
             return self.action_space.sample()  # 探索 (Exploration)
-        else:
-            q_values = self.get_q_values(state)
-            return np.argmax(q_values)  # 利用 (Exploitation)
+
+        return np.argmax(q_values)  # 利用 (Exploitation)
 
     def learn(self, state, action, reward, next_state, done):
         """Q-Learning 更新"""
@@ -200,9 +209,9 @@ class BaseDQNAgent(Agent):
         self.learn_step_counter = 0
         self.target_update_freq = target_update_freq
 
-    def get_action(self, state):
+    def get_action(self, state, deterministic: bool = False):
         """使用 Epsilon-Greedy 策略選擇動作"""
-        if random.random() < self.epsilon:
+        if (not deterministic) and random.random() < self.epsilon:
             return self.action_space.sample()
         
         # 處理輸入
@@ -397,26 +406,34 @@ class ActorCritic(nn.Module):
 
         # calculate flatten size
         flatten_size = 64 * input_shape[1] * input_shape[2]
-        self.fc = nn.Linear(flatten_size, 512)
-
+        
+        # Shared feature extractor with larger hidden layer
+        self.fc_shared = nn.Linear(flatten_size, 512)
+        
         # Actor Head
-        self.actor = nn.Linear(512, action_dim)
+        self.actor_fc = nn.Linear(512, 256)
+        self.actor = nn.Linear(256, action_dim)
 
         # Critic Head
-        self.critic = nn.Linear(512, 1)
+        self.critic_fc = nn.Linear(512, 256)
+        self.critic = nn.Linear(256, 1)
 
     def forward(self, x):
         x = torch.relu(self.conv1(x))
         x = torch.relu(self.conv2(x))
         x = torch.relu(self.conv3(x))
         x = x.view(x.size(0), -1)               # flatten
-        x = torch.relu(self.fc(x))
+        
+        # Shared features
+        shared_features = torch.relu(self.fc_shared(x))
 
         # Actor: output probabilities (logits)
-        action_logits = self.actor(x)
+        actor_hidden = torch.relu(self.actor_fc(shared_features))
+        action_logits = self.actor(actor_hidden)
 
         # Critic: output value
-        state_value = self.critic(x)
+        critic_hidden = torch.relu(self.critic_fc(shared_features))
+        state_value = self.critic(critic_hidden)
 
         return action_logits, state_value
     
@@ -426,6 +443,7 @@ class PPOMemory:
         self.states = []                # current states
         self.probs = []                 # action probabilities
         self.vals = []                  # state values
+        self.next_vals = []             # value estimates for next states
         self.actions = []               # actions taken
         self.rewards = []               # rewards received
         self.dones = []                 # episode done flags
@@ -444,15 +462,24 @@ class PPOMemory:
             end = start + self.batch_size
             batches.append(indices[start:end])
 
-        return np.array(self.states), np.array(self.actions), np.array(self.probs), np.array(self.vals), \
-                np.array(self.rewards), np.array(self.dones), batches
+        return (
+            np.array(self.states),
+            np.array(self.actions),
+            np.array(self.probs),
+            np.array(self.vals),
+            np.array(self.next_vals),
+            np.array(self.rewards),
+            np.array(self.dones),
+            batches,
+        )
 
 
-    def store_memory(self, state, action, probs, vals, reward, done):
+    def store_memory(self, state, action, probs, vals, next_val, reward, done):
         self.states.append(state)
         self.actions.append(action)
         self.probs.append(probs)
         self.vals.append(vals)
+        self.next_vals.append(next_val)
         self.rewards.append(reward)
         self.dones.append(done)
 
@@ -460,6 +487,7 @@ class PPOMemory:
         self.states = []
         self.probs = []
         self.vals = []
+        self.next_vals = []
         self.actions = []
         self.rewards = []
         self.dones = []
@@ -467,15 +495,16 @@ class PPOMemory:
 class PPOAgent(Agent):
     """Policy based or Actor-Critic reinforcement learning algorithm: Proximal Policy Optimization (PPO) Agent"""
     def __init__(self, state_shape, action_space, learning_rate = 0.0003, gamma = 0.99, gae_lambda = 0.95, 
-                 policy_clip = 0.2, batch_size = 64, n_epochs = 10, update_interval = 2048):
+                 policy_clip = 0.2, batch_size = 64, n_epochs = 10, update_interval = 1024):
         super().__init__(action_space)
         self.gamma = gamma                      # discount factor
         self.policy_clip = policy_clip          # clip parameter for PPO
         self.n_epochs = n_epochs                # number of epochs per update
         self.gae_lambda = gae_lambda            # GAE lambda
         self.update_interval = update_interval  # steps between updates
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.actor_critic = ActorCritic(state_shape, action_space.n).to(device)         # the Actor-Critic network
+        self.actor_critic = ActorCritic(state_shape, action_space.n).to(self.device)         # the Actor-Critic network
         self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=learning_rate)   
         self.memory = PPOMemory(batch_size)
         self.step_counter = 0
@@ -483,15 +512,35 @@ class PPOAgent(Agent):
         # for storing last action and value
         self.last_log_prob = None
         self.last_value = None
+        
+        # for tracking metrics
+        self.last_entropy = None
 
-    def get_action(self, state):
+    def get_action(self, state, deterministic=False):
+        """
+        Get action from the policy
+        
+        Args:
+            state: current state
+            deterministic: if True, use greedy action (argmax); if False, sample from distribution
+        
+        Returns:
+            action (int)
+        """
         # state shape: (C, H, W)
-        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)  # add batch dimension
+        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(self.device)  # add batch dimension
 
         with torch.no_grad():
             logits, value = self.actor_critic(state_tensor)
             dist = torch.distributions.Categorical(logits=logits)
-            action = dist.sample()
+            
+            if deterministic:
+                # Use greedy action for evaluation
+                action = torch.argmax(logits, dim=-1)
+            else:
+                # Sample from distribution for training
+                action = dist.sample()
+            
             log_prob = dist.log_prob(action)
 
         self.last_log_prob = log_prob.item()
@@ -500,8 +549,16 @@ class PPOAgent(Agent):
         return action.item()
     
     def learn(self, state, action, reward, next_state, done):
+        if done:
+            next_value = 0
+        else:
+            next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0).to(self.device)
+            with torch.no_grad():
+                _, next_value_tensor = self.actor_critic(next_state_tensor)
+                next_value = next_value_tensor.item()
+
         # store experience in memory
-        self.memory.store_memory(state, action, self.last_log_prob, self.last_value, reward, done)
+        self.memory.store_memory(state, action, self.last_log_prob, self.last_value, next_value, reward, done)
         self.step_counter += 1
 
         # update if enough steps collected
@@ -509,29 +566,30 @@ class PPOAgent(Agent):
             self.update()
 
     def update(self):
-        states, actions, old_probs, vals, rewards, dones, batches = self.memory.generate_batches()
+        states, actions, old_probs, vals, next_vals, rewards, dones, batches = self.memory.generate_batches()
+
+        rewards = np.array(rewards, dtype=np.float32)
         values = vals
         advantages = np.zeros(len(rewards), dtype=np.float32)
 
-        # calculate advantages using GAE
-        # using buffer to approximate next value
-        for t in range(len(rewards) - 1):
-            discount = 1
-            a_t = 0
-            for k in range(t, len(rewards) - 1):
-                a_t += discount * (rewards[k] + self.gamma * values[k + 1] * (1 - int(dones[k])) - values[k])
-                discount *= self.gamma * self.gae_lambda
-            advantages[t] = a_t
+        # calculate advantages using GAE (Generalized Advantage Estimation)
+        gae = 0
+        for t in reversed(range(len(rewards))):
+            delta = rewards[t] + self.gamma * next_vals[t] * (1 - int(dones[t])) - values[t]
+            gae = delta + self.gamma * self.gae_lambda * (1 - int(dones[t])) * gae
+            advantages[t] = gae
 
         # transform to tensors (keep dtypes consistent)
-        advantages = torch.tensor(advantages, dtype=torch.float32, device=device)
+        advantages = torch.FloatTensor(advantages).to(self.device)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-        values = torch.tensor(values, dtype=torch.float32, device=device)
+        values = torch.FloatTensor(values).to(self.device)
 
+        entropy_list = []
+        
         for _ in range(self.n_epochs):
-            state_tensor = torch.FloatTensor(states).to(device)
-            old_probs_tensor = torch.tensor(old_probs, dtype=torch.float32, device=device)
-            actions_tensor = torch.tensor(actions, dtype=torch.long, device=device)
+            state_tensor = torch.FloatTensor(states).to(self.device)
+            old_probs_tensor = torch.FloatTensor(old_probs).to(self.device)
+            actions_tensor = torch.LongTensor(actions).to(self.device)
 
             for batch in batches:
                 batch_states = state_tensor[batch]
@@ -553,18 +611,26 @@ class PPOAgent(Agent):
 
                 actor_loss = -torch.min(weighted_probs, clipped_probs).mean()
 
+                # entropy bonus for exploration
+                entropy = dist.entropy().mean()
+                entropy_list.append(entropy.item())
+                
                 # critic loss (value function loss)
                 returns = (batch_advantages + batch_values).detach()
                 critic_loss = (returns - state_values.squeeze()).pow(2).mean()
 
-                # total loss
-                total_loss = actor_loss + 0.5 * critic_loss
+                # total loss (actor + critic + entropy regularization)
+                total_loss = actor_loss + 0.25 * critic_loss - 0.02 * entropy
 
                 # update network
                 self.optimizer.zero_grad()
                 total_loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.actor_critic.parameters(), 0.5)
                 self.optimizer.step()
 
+        # store metrics
+        self.last_entropy = np.mean(entropy_list)
+        
         # clear memory after update
         self.memory.clear_memory()
 
