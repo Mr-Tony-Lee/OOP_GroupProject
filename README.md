@@ -98,6 +98,8 @@ python part2/main.py --help
 
 #### 📦 安裝需求 (Requirements) && Dependencies
 
+請確保安裝以下 Python 套件：
+
 ```
 part3
 ├── gymnasium v1.2.2
@@ -219,18 +221,22 @@ python part3/train.py --mode train --agent DDQN
 
 # 訓練 Q-Learning
 python part3/train.py --mode train --agent QLearning
+
+# 訓練 PPO（範例）
+python part3/train.py --mode train --agent PPO --batch 64
 ```
 
 **進階參數**:
 你可以透過參數調整超參數 (Hyperparameters)：
 ```bash
-usage: train.py [-h] [--agent {QLearning,DDQN,DQN}] [--episodes EPISODES] [--mode {train,test,human}] [--learning_rate LEARNING_RATE] [--gamma GAMMA] [--epsilon EPSILON]
-                [--epsilon_decay EPSILON_DECAY] [--min_epsilon MIN_EPSILON] [--batch BATCH] [--memory MEMORY] [--target_update_freq TARGET_UPDATE_FREQ]
+usage: train.py [-h] [--agent {QLearning,DDQN,DQN,PPO}] [--episodes EPISODES] [--mode {train,test,eval,human}] [--learning_rate LEARNING_RATE] [--gamma GAMMA] [--epsilon EPSILON]
+                                [--epsilon_decay EPSILON_DECAY] [--min_epsilon MIN_EPSILON] [--batch BATCH] [--memory MEMORY] [--target_update_freq TARGET_UPDATE_FREQ] [--gae_lambda GAE_LAMBDA]
+                                [--policy_clip POLICY_CLIP] [--n_epochs N_EPOCHS]
                 options:
   -h, --help                                -> show this help message and exit
-  --agent {QLearning,DDQN,DQN}              -> Type of agent to use
+  --agent {QLearning,DDQN,DQN,PPO}          -> Type of agent to use
   --episodes EPISODES                       -> Number of episodes to train
-  --mode {train,test,human}                 -> Mode to run the agent
+  --mode {train,test,eval,human}            -> Mode to run the agent 
   --learning_rate LEARNING_RATE             -> Learning rate
   --gamma GAMMA                             -> Discount factor
   --epsilon EPSILON                         -> Initial epsilon
@@ -239,21 +245,27 @@ usage: train.py [-h] [--agent {QLearning,DDQN,DQN}] [--episodes EPISODES] [--mod
   --batch BATCH                             -> Batch size
   --memory MEMORY                           -> Memory size
   --target_update_freq TARGET_UPDATE_FREQ   -> Target update frequency
+  --gae_lambda GAE_LAMBDA                   -> (PPO) GAE lambda
+  --policy_clip POLICY_CLIP                 -> (PPO) Clip epsilon
+  --n_epochs N_EPOCHS                       -> (PPO) Epochs per update
 ```
 
 | 參數 | 預設值 | 說明 |
 | :--- | :--- | :--- |
-| `--agent` | DQN | 選擇 Agent 類型 (`DQN`, `DDQN`, `QLearning`) |
+| `--agent` | DQN | 選擇 Agent 類型 (`DQN`, `DDQN`, `QLearning`, `PPO`) |
 | `--episodes` | 2000 | 訓練總回合數 |
-| `--mode` | train | 選擇模式 (`train`, `test`, `human`) |
+| `--mode` | train | 選擇模式 (`train`, `test`, `eval`, `human`) |
 | `--learning_rate` | 0.00025 | 學習率 |
 | `--gamma` | 0.99 | 折扣因子 (Discount Factor) |
-| `--epsilon` | 0.1 | 初始 epsilon |
-| `--epsilon_decay` | 0.995 | Epsilon 退火率 |
-| `--min_epsilon` | 0.01 | 最小 epsilon |
+| `--epsilon` | 1.0 | 初始 epsilon (DQN 系列使用) |
+| `--epsilon_decay` | 0.998 | Epsilon 退火率 |
+| `--min_epsilon` | 0.05 | 最小 epsilon |
 | `--batch` | 512 | 批量大小 (Batch Size) |
-| `--memory` | 10000 | 變換記憶體大小 |
-| `--target_update_freq` | 1000 | Target Network 更新頻率 |
+| `--memory` | 50000 | 變換記憶體大小 |
+| `--target_update_freq` | 1000 | Target Network 更新頻率；PPO 則是 update_interval |
+| `--gae_lambda` | 0.95 | (PPO) GAE lambda |
+| `--policy_clip` | 0.2 | (PPO) Clip epsilon |
+| `--n_epochs` | 10 | (PPO) 每次更新的 epoch 數 |
 
 ##### 3. 測試模型 (Test Agent)
 載入訓練好的模型 (`final_model`) 並觀看 AI 實際遊玩。
@@ -262,3 +274,17 @@ usage: train.py [-h] [--agent {QLearning,DDQN,DQN}] [--episodes EPISODES] [--mod
 python part3/train.py --mode test --agent DDQN
 ```
 *   注意：測試模式會讀取 `Result/{agent}/result/final_model.pth`，請先確保訓練完成。
+
+##### 4. 評估模型 (Eval Mode)
+使用確定性策略（貪婪動作）跑多個 episodes，計算平均與標準差，適合比較不同超參或演算法的最終表現。
+
+```bash
+# 評估 PPO，跑 50 回合（預設）
+python part3/train.py --mode eval --agent PPO --episodes 50
+
+# 也可套用到其他 agent（會使用各自的貪婪策略）
+python part3/train.py --mode eval --agent DQN --episodes 50
+```
+
+*   輸出格式：`Mean Reward: <平均> ± <標準差>`。
+*   PPO 評估使用 `deterministic=True`，避免訓練時的探索噪音。
