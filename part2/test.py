@@ -1,8 +1,10 @@
 import argparse
-from Agent import QLearningAgent, PPOAgent
+from Agent import QLearningAgent
 import matplotlib.pyplot as plt
 
-def Training(agent, map_name = "8x8", episodes=15000, is_slippery = True, render_mode="ansi", is_cheating=False):
+def Training(agent, map_name = "8x8", episodes=15000, is_slippery = True, render_mode="ansi", is_cheating=False, 
+             learning_rate_a=0.5,learning_rate_decay = 0.9995, discount_factor_g=0.99, exploration_decay_rate=0.00015,
+             step_penalty=0.00035, closer_to_goal_reward=0.005):
     """
     訓練指定的代理人 (Agent) 在 Frozen Lake 環境中學習。
         - agent: 代理人類別 (例如 QLearningAgent)
@@ -13,9 +15,9 @@ def Training(agent, map_name = "8x8", episodes=15000, is_slippery = True, render
         - is_cheating: 是否啟用作弊模式 (使用環境的轉移機率)
     """  
     if agent == "QLearning":
-        agent = QLearningAgent(agent_type=agent, map_name=map_name, episodes=episodes, is_training=True, is_slippery=is_slippery, render_mode=render_mode, is_cheating=is_cheating)
-    elif agent == "PPO":
-        agent = PPOAgent(agent_type=agent, map_name=map_name, episodes=episodes, is_training=True, is_slippery=is_slippery, render_mode=render_mode, is_cheating=is_cheating)
+        agent = QLearningAgent(agent_type=agent, map_name=map_name, episodes=episodes, is_training=True, is_slippery=is_slippery, render_mode=render_mode, is_cheating=is_cheating, 
+                               learning_rate_a=learning_rate_a, learning_rate_decay=learning_rate_decay, discount_factor_g=discount_factor_g, exploration_decay_rate=exploration_decay_rate,
+                               step_penalty=step_penalty, closer_to_goal_reward=closer_to_goal_reward)
     print(f"Training {map_name}...")
     agent.run()
 
@@ -31,8 +33,6 @@ def Evaluation(agent, map_name = "8x8", episodes=1000, is_slippery = True, rende
     """
     if agent == "QLearning":
         agent = QLearningAgent(agent_type=agent, map_name=map_name, episodes=episodes, is_training=False, is_slippery=is_slippery, render_mode=render_mode, is_cheating=is_cheating)
-    elif agent == "PPO":
-        agent = PPOAgent(agent_type =agent, map_name=map_name, episodes=episodes, is_training=False, is_slippery=is_slippery, render_mode=render_mode, is_cheating=is_cheating)
     print(f"\nEvaluating {map_name}...")
     success_rate = agent.run()
     return success_rate
@@ -77,10 +77,22 @@ if __name__ == "__main__":
     render_mode = args.render_mode
     CheatingEnv = (args.cheating.lower() == "true")
     
+    
+    learning_rate_a = 0.4963125701668435
+    discount_factor_g = 0.9559919852791074
+    exploration_decay_rate = 0.0004883668598976838
+    
+    step_penalty = 0.00011214058776498324
+    closer_to_goal_reward = 0.4899189987079525
+    
+    # 0.46 
     if mode == "train":
         print(f"Training Mode: {agent_type} on {map_name} map for {train_episodes} episodes.")
         # Train 8x8
-        Training(agent_type, map_name=map_name, episodes=train_episodes, is_slippery=is_slippery, render_mode=render_mode, is_cheating=CheatingEnv)
+        # Training(agent_type, map_name=map_name, episodes=train_episodes, is_slippery=is_slippery, render_mode=render_mode, is_cheating=CheatingEnv
+        #         , learning_rate_a=learning_rate_a, discount_factor_g=discount_factor_g, exploration_decay_rate=exploration_decay_rate
+        #         , step_penalty=step_penalty, closer_to_goal_reward=closer_to_goal_reward)
+        Training(agent_type, map_name=map_name, episodes=train_episodes, is_slippery=is_slippery, render_mode=render_mode, is_cheating=CheatingEnv)                
     else:
         for i in range(num_runs):
             print(f"--- Run {i+1}/{num_runs} ---")
@@ -88,3 +100,10 @@ if __name__ == "__main__":
             success_rate = Evaluation(agent_type, map_name=map_name, episodes=eval_episodes, is_slippery=is_slippery, render_mode=render_mode, is_cheating=CheatingEnv)
             success_rates.append(success_rate)
         plot_results(map_name, success_rates, num_runs)
+
+
+# uv run ./test.py --agent QLearning --mode train 
+# uv run ./test.py --agent QLearning --mode eval --runs 10
+# python3 ./test.py --agent PPO --mode train 
+# python3 ./test.py --agent PPO --mode eval --runs 10
+

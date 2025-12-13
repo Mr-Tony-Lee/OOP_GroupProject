@@ -1,14 +1,16 @@
 [project]
-name = "class-version"
+name = "part2"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "gymnasium>=1.2.2",
-    "matplotlib>=3.10.7",
+    "joblib>=1.5.2",
+    "matplotlib>=3.10.8",
     "numpy>=2.3.5",
-    "ruff>=0.14.8",
+    "optuna>=4.6.0",
+    "pygame>=2.6.1",
     "stable-baselines3>=2.7.1",
-    "tensorboard>=2.20.0",
+    "tqdm>=4.67.1",
 ]
