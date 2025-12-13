@@ -1,0 +1,93 @@
+@startuml class_diagram
+skinparam classAttributeIconSize 0
+
+' ===== Captions =====
+' <|-- : bolded arrow for inheritance (is-a relationship)
+' ..> : dashed arrow for association (uses/has-a relationship)
+
+' + : public method/attribute
+' # : protected method/attribute
+
+' ===== Agents =====
+abstract class Agent {
+  +get_action(state, deterministic=false)
+  +learn(...)
+  +save(path)
+  +load(path)
+}
+
+class QLearningAgent
+abstract class BaseDQNAgent
+class DQNAgent
+class DoubleDQNAgent
+class PPOAgent
+
+Agent <|-- QLearningAgent
+Agent <|-- BaseDQNAgent
+Agent <|-- PPOAgent
+
+BaseDQNAgent <|-- DQNAgent
+BaseDQNAgent <|-- DoubleDQNAgent
+
+' ===== Agent Configuration =====
+class AgentSpec {
+  +name : str
+  +env_id : str
+  +model_filename : str
+  +build : Callable
+}
+
+AgentSpec ..> Agent : creates >
+
+' ===== Environment =====
+abstract class DungeonCrawlerEnv {
+  +reset()
+  +step(action)
+  +render()
+  #{abstract} _get_obs()
+}
+
+class CNNDungeonEnv
+class DQNDungeonEnv
+class PPODungeonEnv
+
+DungeonCrawlerEnv <|-- CNNDungeonEnv
+DungeonCrawlerEnv <|-- DQNDungeonEnv
+DungeonCrawlerEnv <|-- PPODungeonEnv
+
+DungeonCrawlerEnv ..> Agent : interacts
+
+' ===== Game Objects =====
+abstract class GameObject {
+  +row : int
+  +col : int
+}
+
+class Character
+class Player
+class Enemy
+
+GameObject <|-- Character
+Character <|-- Player
+Character <|-- Enemy
+
+abstract class Item {
+  +apply(player)
+}
+
+class Key
+class Treasure
+class Trap
+class Door
+class Wall
+
+GameObject <|-- Item
+Item <|-- Key
+Item <|-- Treasure
+Item <|-- Trap
+GameObject <|-- Door
+GameObject <|-- Wall
+
+Player --> Item : picks/steps on
+
+@enduml
