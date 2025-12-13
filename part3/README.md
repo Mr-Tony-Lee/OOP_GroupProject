@@ -1,6 +1,6 @@
 # Dungeon Crawler RL Project (Part 3)
 
-這是一個結合 **物件導向程式設計 (OOP)** 與 **強化學習 (Reinforcement Learning)** 的期末專案。我們從零開始打造了一個符合 Gymnasium 標準的地牢探險環境，並實作了多種 RL Agent (Q-Learning, DQN, Double DQN) 來自動破解關卡。
+這是一個結合 **物件導向程式設計 (OOP)** 與 **強化學習 (Reinforcement Learning)** 的期末專案。我們從零開始打造了一個符合 Gymnasium 標準的地牢探險環境，並實作了多種 RL Agent (Q-Learning, DQN, Double DQN, PPO) 來自動破解關卡。
 
 ## 🌟 專案特色 (Features)
 
@@ -20,6 +20,7 @@
     *   **Q-Learning**: 表格型強化學習，適合簡單狀態。
     *   **DQN (Deep Q-Network)**: 結合 CNN 與神經網路，處理圖像輸入。
     *   **Double DQN (DDQN)**: 改進版 DQN，減少價值高估問題，提升穩定性。
+    *   **PPO (Proximal Policy Optimization)**: actor-critic 策略梯度法，訓練時採樣、評估時用貪婪動作。
 
 ## 📂 檔案結構 (File Structure)
 
@@ -156,18 +157,22 @@ python part3/train.py --mode train --agent DDQN
 
 # 訓練 Q-Learning
 python part3/train.py --mode train --agent QLearning
+
+# 訓練 PPO（推薦用 batch=64 或 32）
+python part3/train.py --mode train --agent PPO --batch 32
 ```
 
 **進階參數**:
 你可以透過參數調整超參數 (Hyperparameters)：
 ```bash
-usage: train.py [-h] [--agent {QLearning,DDQN,DQN}] [--episodes EPISODES] [--mode {train,test,human}] [--learning_rate LEARNING_RATE] [--gamma GAMMA] [--epsilon EPSILON]
-                [--epsilon_decay EPSILON_DECAY] [--min_epsilon MIN_EPSILON] [--batch BATCH] [--memory MEMORY] [--target_update_freq TARGET_UPDATE_FREQ]
+usage: train.py [-h] [--agent {QLearning,DDQN,DQN,PPO}] [--episodes EPISODES] [--mode {train,test,eval,human}] [--learning_rate LEARNING_RATE] [--gamma GAMMA] [--epsilon EPSILON]
+                                [--epsilon_decay EPSILON_DECAY] [--min_epsilon MIN_EPSILON] [--batch BATCH] [--memory MEMORY] [--target_update_freq TARGET_UPDATE_FREQ] [--gae_lambda GAE_LAMBDA]
+                                [--policy_clip POLICY_CLIP] [--n_epochs N_EPOCHS]
                 options:
   -h, --help                                -> show this help message and exit
-  --agent {QLearning,DDQN,DQN}              -> Type of agent to use
+  --agent {QLearning,DDQN,DQN,PPO}          -> Type of agent to use
   --episodes EPISODES                       -> Number of episodes to train
-  --mode {train,test,human}                 -> Mode to run the agent
+  --mode {train,test,eval,human}            -> Mode to run the agent 
   --learning_rate LEARNING_RATE             -> Learning rate
   --gamma GAMMA                             -> Discount factor
   --epsilon EPSILON                         -> Initial epsilon
@@ -176,21 +181,27 @@ usage: train.py [-h] [--agent {QLearning,DDQN,DQN}] [--episodes EPISODES] [--mod
   --batch BATCH                             -> Batch size
   --memory MEMORY                           -> Memory size
   --target_update_freq TARGET_UPDATE_FREQ   -> Target update frequency
+  --gae_lambda GAE_LAMBDA                   -> (PPO) GAE lambda
+  --policy_clip POLICY_CLIP                 -> (PPO) Clip epsilon
+  --n_epochs N_EPOCHS                       -> (PPO) Epochs per update
 ```
 
 | 參數 | 預設值 | 說明 |
 | :--- | :--- | :--- |
-| `--agent` | DQN | 選擇 Agent 類型 (`DQN`, `DDQN`, `QLearning`) |
+| `--agent` | DQN | 選擇 Agent 類型 (`DQN`, `DDQN`, `QLearning`, `PPO`) |
 | `--episodes` | 2000 | 訓練總回合數 |
-| `--mode` | train | 選擇模式 (`train`, `test`, `human`) |
+| `--mode` | train | 選擇模式 (`train`, `test`, `eval`, `human`) |
 | `--learning_rate` | 0.00025 | 學習率 |
 | `--gamma` | 0.99 | 折扣因子 (Discount Factor) |
-| `--epsilon` | 0.1 | 初始 epsilon |
-| `--epsilon_decay` | 0.995 | Epsilon 退火率 |
-| `--min_epsilon` | 0.01 | 最小 epsilon |
+| `--epsilon` | 1.0 | 初始 epsilon (DQN 系列使用) |
+| `--epsilon_decay` | 0.998 | Epsilon 退火率 |
+| `--min_epsilon` | 0.05 | 最小 epsilon |
 | `--batch` | 512 | 批量大小 (Batch Size) |
-| `--memory` | 10000 | 變換記憶體大小 |
-| `--target_update_freq` | 1000 | Target Network 更新頻率 |
+| `--memory` | 50000 | 變換記憶體大小 |
+| `--target_update_freq` | 1000 | Target Network 更新頻率；PPO 則是 update_interval |
+| `--gae_lambda` | 0.95 | (PPO) GAE lambda |
+| `--policy_clip` | 0.2 | (PPO) Clip epsilon |
+| `--n_epochs` | 10 | (PPO) 每次更新的 epoch 數 |
 
 ### 3. 測試模型 (Test Agent)
 載入訓練好的模型 (`final_model`) 並觀看 AI 實際遊玩。
@@ -199,6 +210,55 @@ usage: train.py [-h] [--agent {QLearning,DDQN,DQN}] [--episodes EPISODES] [--mod
 python part3/train.py --mode test --agent DDQN
 ```
 *   注意：測試模式會讀取 `Result/{agent}/result/final_model.pth`，請先確保訓練完成。
+
+### 4. 評估模型 (Eval Mode)
+使用確定性策略（貪婪動作）跑多個 episodes，計算平均與標準差，適合比較不同超參或演算法的最終表現。
+
+```bash
+# 評估 PPO，跑 50 回合（預設）
+python part3/train.py --mode eval --agent PPO --episodes 50
+
+# 也可套用到其他 agent（會使用各自的貪婪策略）
+python part3/train.py --mode eval --agent DQN --episodes 50
+```
+
+*   輸出格式：`Mean Reward: <平均> ± <標準差>`。
+*   PPO 評估使用 `deterministic=True`，避免訓練時的探索噪音。
+
+## 🎯 訓練小技巧 (Training Tips)
+
+### 關於 PPO 的評估
+做 PPO 訓練時會發現一件事：訓練過程中看到的平均獎勵可能偏低，但 Best Reward 很高。這其實很正常，因為：
+
+- **訓練時**：PPO 用策略抽樣來保留探索（entropy 保留一些隨機性）
+- **評估時**：應該直接選最好的動作（greedy），這樣才能看到政策真正的實力
+
+舉例來說，如果 entropy 還有 0.5 左右，等於訓練時每一步都有 50% 機率做非最優動作。用 `eval` 模式跑確定性評估會看到平均獎勵顯著提升（接近 Best Reward），這才是真實表現。
+
+所以訓練好 PPO 後，一定要用這個指令來看最終成績：
+```bash
+python part3/train.py --mode eval --agent PPO --episodes 50
+```
+
+### 超參數調整方向
+每個演算法對超參數的敏感度不一樣，訓練不理想時可以試試這些方向：
+
+**PPO 的常見問題：**
+- Reward 一直上不去 → 降低學習率 (learning_rate)，或減少 entropy 係數（`agent.py` 裡的 0.01）
+- 訓練很不穩定（波動大）→ 提高 critic_loss 的權重（內部係數從 0.5 改 1.0）
+- 感覺在重複陷阱 → 可能 entropy 降太快，嘗試增加 entropy 係數
+
+**DQN / DDQN 的常見問題：**
+- 獎勵爆炸 (NaN) → 學習率太高，改小一點 
+- 訓練很慢 → 提高 epsilon_decay 讓探索更久，或加大 batch size
+- Best reward 很高但平均低 → 正常的，就是收斂還不夠快
+
+**Q-Learning 的常見問題：**
+- 訓練完一點都沒學到 → 確認狀態表示有沒有問題，或改大學習率
+
+建議每次只改一個參數，觀察幾個 epoch 再決定要不要再調。
+
+---
 
 ## 🎮 遊戲規則 (Game Rules)
 
