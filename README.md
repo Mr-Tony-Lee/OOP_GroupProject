@@ -86,6 +86,8 @@ python part2/main.py --help
 
 ### 2. Dungeon Crawler RL Project (Part 3)
 
+> 📌 **UML 類別圖**：[part3/uml/class_diagram.png](part3/uml/class_diagram.png)
+
 #### 📂 檔案結構 (File Structure)
 
 位於 `part3/` 資料夾下：
