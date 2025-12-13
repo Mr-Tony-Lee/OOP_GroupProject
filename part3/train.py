@@ -6,123 +6,101 @@ import dungeon_env
 import numpy as np
 import argparse
 from human import human_mode
+from dataclasses import dataclass
+from typing import Callable
 
 import warnings
 # 靜音 pygame/pkg_resources 的棄用警告
 warnings.filterwarnings("ignore", category=UserWarning, module=r"pygame\.pkgdata")
 warnings.filterwarnings("ignore", category=UserWarning, message=r"pkg_resources is deprecated as an API.*")
 
-# ============================================================================
-# 狀態預處理函數
-# ============================================================================
-def preprocess_state(state, agent_type):
-    """
-    根據 agent 類型預處理狀態
-    
-    - QLearning: 需要 (row, col, has_key) 三元組
-    - DoubleDQN: 需要 (8, H, W) 的 numpy array
-    - DQN: 需要 Dict {"image": ..., "scalars": ...}
-    - PPO: 需要 (8, H, W) 的 numpy array
-    """
-    if agent_type == "QLearning":
-        # DQN 環境返回 (8, rows, cols)
-        # Find player position (Channel 1)
-        player_pos = np.where(state[1] == 1)
-        if len(player_pos[0]) > 0:
-            row, col = player_pos[0][0], player_pos[1][0]
-        else:
-            row, col = 0, 0  # Should not happen
-            
-        # Check has_key (Channel 7)
-        has_key = 1 if state[7, 0, 0] == 1 else 0
-        
-        return (row, col, has_key)
-    
-    elif agent_type == "DQN":
-        # CNN 環境返回 Dict，直接返回
-        return state
-    
-    elif agent_type == "PPO":
-        return state
-    
-    else:  # DoubleDQN
-        # DoubleDQN 現在也使用 Dict 輸入 (Image + Scalar)
-        return state
-
 
 # ============================================================================
-# Agent 工廠函數
+# Agent spec (centralized configuration)
 # ============================================================================
-def get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq, gae_lambda=0.95, policy_clip=0.2, n_epochs=10):
-    """根據 agent 類型創建相應的 agent"""
-    if agent_type == "QLearning":
-        return QLearningAgent(
-            env.action_space,
-            learning_rate=learning_rate,
-            discount_factor=gamma,
-            epsilon=epsilon,
-            epsilon_decay=epsilon_decay
-        )
-    
-    elif agent_type == "DQN":
-        # DQN (原 CNNAgent)
-        return DQNAgent(
-            observation_space=env.observation_space,
-            action_space=env.action_space,
-            learning_rate=learning_rate,  
-            gamma=gamma,
-            epsilon=epsilon,
-            epsilon_decay=epsilon_decay,  
-            min_epsilon=min_epsilon,
-            batch_size=batch,       
-            memory_size=memory,
-            target_update_freq=target_update_freq 
-        )
-    
-    elif agent_type == "DoubleDQN":
-        # DoubleDQN (原 DQNAgent)
-        return DoubleDQNAgent(
-            observation_space=env.observation_space,
-            action_space=env.action_space,
-            learning_rate=learning_rate,  
-            gamma=gamma,
-            epsilon=epsilon,
-            epsilon_decay=epsilon_decay,  
-            min_epsilon=min_epsilon,
-            batch_size=batch,       
-            memory_size=memory,
-            target_update_freq=target_update_freq 
-        )
-    
-    elif agent_type == "PPO":
-        state_shape = env.observation_space.shape
-        return PPOAgent(
-            state_shape=state_shape,
-            action_space=env.action_space,
-            learning_rate=learning_rate,
-            gamma=gamma,
-            gae_lambda=gae_lambda,
-            policy_clip=policy_clip,
-            batch_size=batch,
-            n_epochs=n_epochs,
-            update_interval=target_update_freq
-        )
-    
-    else:
+@dataclass(frozen=True)
+class AgentSpec:
+    name: str
+    env_id: str
+    model_filename: str
+    build: Callable
+
+
+def normalize_agent_type(agent_type: str) -> str:
+    if agent_type == "DDQN":
+        return "DoubleDQN"
+    return agent_type
+
+
+def _build_qlearning(env, *, training: bool, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, **_):
+    return QLearningAgent(
+        env.action_space,
+        learning_rate=learning_rate,
+        discount_factor=gamma,
+        epsilon=epsilon if training else 0.0,
+        epsilon_decay=epsilon_decay,
+        min_epsilon=min_epsilon,
+    )
+
+
+def _build_dqn(env, *, training: bool, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq, **_):
+    return DQNAgent(
+        observation_space=env.observation_space,
+        action_space=env.action_space,
+        learning_rate=learning_rate,
+        gamma=gamma,
+        epsilon=epsilon if training else 0.0,
+        epsilon_decay=epsilon_decay,
+        min_epsilon=min_epsilon,
+        batch_size=batch,
+        memory_size=memory,
+        target_update_freq=target_update_freq,
+    )
+
+
+def _build_double_dqn(env, *, training: bool, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq, **_):
+    return DoubleDQNAgent(
+        observation_space=env.observation_space,
+        action_space=env.action_space,
+        learning_rate=learning_rate,
+        gamma=gamma,
+        epsilon=epsilon if training else 0.0,
+        epsilon_decay=epsilon_decay,
+        min_epsilon=min_epsilon,
+        batch_size=batch,
+        memory_size=memory,
+        target_update_freq=target_update_freq,
+    )
+
+
+def _build_ppo(env, *, training: bool, learning_rate, gamma, batch, target_update_freq, gae_lambda, policy_clip, n_epochs, **_):
+    state_shape = env.observation_space.shape
+    return PPOAgent(
+        state_shape=state_shape,
+        action_space=env.action_space,
+        learning_rate=learning_rate,
+        gamma=gamma,
+        gae_lambda=gae_lambda,
+        policy_clip=policy_clip,
+        batch_size=batch,
+        n_epochs=n_epochs,
+        update_interval=target_update_freq,
+    )
+
+
+AGENT_SPECS = {
+    "QLearning": AgentSpec(name="QLearning", env_id="dungeon-crawler-dqn-v0", model_filename="final_model.pkl", build=_build_qlearning),
+    "DQN": AgentSpec(name="DQN", env_id="dungeon-crawler-cnn-v0", model_filename="final_model.pth", build=_build_dqn),
+    "DoubleDQN": AgentSpec(name="DoubleDQN", env_id="dungeon-crawler-cnn-v0", model_filename="final_model.pth", build=_build_double_dqn),
+    "PPO": AgentSpec(name="PPO", env_id="dungeon-crawler-ppo-v0", model_filename="final_model.pth", build=_build_ppo),
+}
+
+
+def get_spec(agent_type: str) -> AgentSpec:
+    key = normalize_agent_type(agent_type)
+    if key not in AGENT_SPECS:
         raise ValueError(f"Unknown agent type: {agent_type}")
-
-
-# ============================================================================
-# 環境選擇函數
-# ============================================================================
-def get_env_id(agent_type):
-    """根據 agent 類型選擇合適的環境"""
-    if agent_type == "DQN" or agent_type == "DoubleDQN":
-        return 'dungeon-crawler-cnn-v0'
-    elif agent_type == "PPO":
-        return 'dungeon-crawler-ppo-v0'
-    else:  # QLearning
-        return 'dungeon-crawler-dqn-v0'
+    return AGENT_SPECS[key]
     
 import random, torch, numpy as np
 
@@ -150,16 +128,28 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
     """
     print(f"Training {agent_type} Agent...")
     set_seed(42)
+
+    agent_spec = get_spec(agent_type)
     
-    # 根據 agent 類型選擇環境
-    env_id = get_env_id(agent_type)
-    env = gym.make(env_id, render_mode=None)
-    
-    # 建立 Agent
-    agent = get_agent(agent_type, env, learning_rate, gamma, epsilon, epsilon_decay, min_epsilon, batch, memory, target_update_freq, gae_lambda, policy_clip, n_epochs)
+    env = gym.make(agent_spec.env_id, render_mode=None)
+    agent = agent_spec.build(
+        env,
+        training=True,
+        learning_rate=learning_rate,
+        gamma=gamma,
+        epsilon=epsilon,
+        epsilon_decay=epsilon_decay,
+        min_epsilon=min_epsilon,
+        batch=batch,
+        memory=memory,
+        target_update_freq=target_update_freq,
+        gae_lambda=gae_lambda,
+        policy_clip=policy_clip,
+        n_epochs=n_epochs,
+    )
 
     # 設定路徑
-    base_dir = f"Result/{agent_type}Agent"
+    base_dir = f"Result/{agent_spec.name}Agent"
     log_dir = os.path.join(base_dir, "log")
     result_dir = os.path.join(base_dir, "result")
     
@@ -181,7 +171,6 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
         best_reward = -float('inf')
         for episode in range(episodes):
             state, info = env.reset()
-            state = preprocess_state(state, agent_type)  # Preprocess
             total_reward = 0
             done = False
             truncated = False
@@ -192,7 +181,6 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
                 
                 # 2. 執行動作
                 next_state, reward, done, truncated, info = env.step(action)
-                next_state = preprocess_state(next_state, agent_type)  # Preprocess
                 
                 # --- 記錄事件 ---
                 if "events" in info:
@@ -237,16 +225,15 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
         print(f"Training Finished! Best Reward: {best_reward:.2f}")
     
     # 儲存最終模型
-    model_filename = "final_model.pkl" if agent_type == "QLearning" else "final_model.pth"
-    model_path = os.path.join(result_dir, model_filename)
+    model_path = os.path.join(result_dir, agent_spec.model_filename)
     agent.save(model_path)
     
     # 對 PPO 進行確定性評估
-    if agent_type == "PPO":
+    if agent_spec.name == "PPO":
         print("\n" + "="*60)
         print("Running deterministic evaluation (greedy policy)...")
         print("="*60)
-        mean_reward, std_reward = evaluate(agent, env_id, agent_type, num_episodes=50, render=False)
+        mean_reward, std_reward = evaluate(agent, agent_spec.env_id, num_episodes=50, render=False)
         eval_msg = f"\nDeterministic Evaluation Results (50 episodes):\n"
         eval_msg += f"Mean Reward: {mean_reward:.2f} ± {std_reward:.2f}\n"
         eval_msg += f"Training Best Reward (with sampling): {best_reward:.2f}\n"
@@ -273,7 +260,7 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
 # ============================================================================
 # 評估函數 (使用確定性策略)
 # ============================================================================
-def evaluate(agent, env_id, agent_type, num_episodes=50, render=False):
+def evaluate(agent, env_id, num_episodes=50, render=False):
     """
     評估訓練好的 Agent，使用確定性策略 (greedy action)
     
@@ -294,7 +281,6 @@ def evaluate(agent, env_id, agent_type, num_episodes=50, render=False):
     
     for episode in range(num_episodes):
         state, info = env.reset()
-        state = preprocess_state(state, agent_type)
         done = False
         truncated = False
         total_reward = 0
@@ -303,7 +289,6 @@ def evaluate(agent, env_id, agent_type, num_episodes=50, render=False):
             action = agent.get_action(state, deterministic=True)
             
             next_state, reward, done, truncated, info = env.step(action)
-            next_state = preprocess_state(next_state, agent_type)
             state = next_state
             total_reward += reward
             
@@ -341,31 +326,32 @@ def test(agent_type="DQN"):
     - "PPO": Proximal Policy Optimization
     """
     print(f"Testing {agent_type} Agent...")
+
+    agent_spec = get_spec(agent_type)
     
-    # 根據 agent 類型選擇環境
-    env_id = get_env_id(agent_type)
-    env = gym.make(env_id, render_mode='human')
-    
-    # 建立 Agent (Epsilon=0 用於貪心策略)
-    if agent_type == "QLearning":
-        agent = QLearningAgent(env.action_space, epsilon=0.0)
-    elif agent_type == "DQN":
-        agent = DQNAgent(env.observation_space, env.action_space, epsilon=0.0)
-    elif agent_type == "DoubleDQN":
-        agent = DoubleDQNAgent(env.observation_space, env.action_space, epsilon=0.0)
-    elif agent_type == "PPO":
-        state_shape = env.observation_space.shape
-        agent = PPOAgent(state_shape=state_shape, action_space=env.action_space)
-    else:
-        raise ValueError(f"Unknown agent type: {agent_type}")
+    env = gym.make(agent_spec.env_id, render_mode='human')
+    agent = agent_spec.build(
+        env,
+        training=False,
+        learning_rate=0.00025,
+        gamma=0.99,
+        epsilon=0.0,
+        epsilon_decay=1.0,
+        min_epsilon=0.0,
+        batch=512,
+        memory=50000,
+        target_update_freq=1000,
+        gae_lambda=0.95,
+        policy_clip=0.2,
+        n_epochs=10,
+    )
     
     # 設定路徑
-    base_dir = f"Result/{agent_type}Agent"
+    base_dir = f"Result/{agent_spec.name}Agent"
     result_dir = os.path.join(base_dir, "result")
     
     # 讀取最終模型
-    model_filename = "final_model.pkl" if agent_type == "QLearning" else "final_model.pth"
-    model_path = os.path.join(result_dir, model_filename)
+    model_path = os.path.join(result_dir, agent_spec.model_filename)
     
     try:
         agent.load(model_path)
@@ -376,7 +362,6 @@ def test(agent_type="DQN"):
         return
 
     state, info = env.reset()
-    state = preprocess_state(state, agent_type)  # Preprocess
     done = False
     truncated = False
     total_reward = 0
@@ -386,7 +371,6 @@ def test(agent_type="DQN"):
         action = agent.get_action(state, deterministic=True)
         
         next_state, reward, done, truncated, info = env.step(action)
-        next_state = preprocess_state(next_state, agent_type)  # Preprocess
         state = next_state
         total_reward += reward
         
@@ -409,7 +393,7 @@ if __name__ == "__main__":
 
     # 從 command 讀入資訊
     parser = argparse.ArgumentParser(description="Train or test an agent")
-    parser.add_argument("--agent", type=str, default="DQN", choices=["QLearning", "DDQN", "DQN", "PPO"], help="Type of agent to use")
+    parser.add_argument("--agent", type=str, default="DQN", choices=["QLearning", "DQN", "PPO", "DoubleDQN", "DDQN"], help="Type of agent to use")
     parser.add_argument("--episodes", type=int, default=2000, help="Number of episodes to train or evaluate")
     parser.add_argument("--mode", type=str, default="train", choices=["train", "test", "eval", "human"], help="Mode to run the agent")
     parser.add_argument("--learning_rate", type=float, default=0.00025, help="Learning rate")
@@ -425,8 +409,6 @@ if __name__ == "__main__":
     parser.add_argument("--n_epochs", type=int, default=10, help="Number of epochs per update (for PPO)")
 
     args = parser.parse_args()
-    if args.agent == "DDQN":
-        args.agent = "DoubleDQN"
     AGENT_TYPE = args.agent
     EPISODES = args.episodes
     MODE = args.mode
@@ -449,32 +431,30 @@ if __name__ == "__main__":
     elif MODE == "eval":
         # 評估模式：載入模型並進行確定性評估
         print(f"Evaluating {AGENT_TYPE} Agent...")
-        env_id = get_env_id(AGENT_TYPE)
-        
-        # 建立 Agent
-        if AGENT_TYPE == "QLearning":
-            agent = QLearningAgent(gym.make(env_id).action_space, epsilon=0.0)
-        elif AGENT_TYPE == "DQN":
-            env = gym.make(env_id)
-            agent = DQNAgent(env.observation_space, env.action_space, epsilon=0.0)
-            env.close()
-        elif AGENT_TYPE == "DoubleDQN":
-            env = gym.make(env_id)
-            agent = DoubleDQNAgent(env.observation_space, env.action_space, epsilon=0.0)
-            env.close()
-        elif AGENT_TYPE == "PPO":
-            env = gym.make(env_id)
-            state_shape = env.observation_space.shape
-            agent = PPOAgent(state_shape=state_shape, action_space=env.action_space)
-            env.close()
-        else:
-            raise ValueError(f"Unknown agent type: {AGENT_TYPE}")
+        agent_spec = get_spec(AGENT_TYPE)
+
+        env = gym.make(agent_spec.env_id)
+        agent = agent_spec.build(
+            env,
+            training=False,
+            learning_rate=LEARNING_RATE,
+            gamma=GAMMA,
+            epsilon=0.0,
+            epsilon_decay=1.0,
+            min_epsilon=0.0,
+            batch=BATCH,
+            memory=MEMORY,
+            target_update_freq=TARGET_UPDATE_FREQ,
+            gae_lambda=GAE_LAMBDA,
+            policy_clip=POLICY_CLIP,
+            n_epochs=N_EPOCHS,
+        )
+        env.close()
         
         # 載入模型
-        base_dir = f"Result/{AGENT_TYPE}Agent"
+        base_dir = f"Result/{agent_spec.name}Agent"
         result_dir = os.path.join(base_dir, "result")
-        model_filename = "final_model.pkl" if AGENT_TYPE == "QLearning" else "final_model.pth"
-        model_path = os.path.join(result_dir, model_filename)
+        model_path = os.path.join(result_dir, agent_spec.model_filename)
         
         try:
             agent.load(model_path)
@@ -484,7 +464,7 @@ if __name__ == "__main__":
             exit(1)
         
         # 評估
-        mean_reward, std_reward = evaluate(agent, env_id, AGENT_TYPE, num_episodes=EPISODES, render=False)
+        mean_reward, std_reward = evaluate(agent, agent_spec.env_id, num_episodes=EPISODES, render=False)
         print(f"\nEvaluation Results ({EPISODES} episodes):")
         print(f"Mean Reward: {mean_reward:.2f} ± {std_reward:.2f}")
     else:

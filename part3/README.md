@@ -5,9 +5,16 @@
 ## 🌟 專案特色 (Features)
 
 1.  **物件導向架構 (OOP Architecture)**:
-    *   使用 `GameObject` 作為基底類別，衍生出 `Character` (角色) 與 `Item` (物品)。
-    *   利用 **多型 (Polymorphism)** 處理不同物件的互動邏輯 (如：撞牆、踩陷阱、撿鑰匙、開門)。
-    *   利用 **繼承 (Inheritance)** 實作 `Player` 與 `Enemy`，共享移動邏輯但擁有不同的行為模式。
+    *   **繼承 (Inheritance) 與 抽象化 (Abstraction)**:
+        *   使用 `GameObject` 與 `Agent` 作為抽象基底類別，定義通用介面。
+        *   遊戲端衍生出 `Character` 與 `Item`；Agent 端衍生出 `DQN`, `PPO` 等具體實作。
+    *   **多型 (Polymorphism)**:
+        *   遊戲物件：透過覆寫 `on_enter` (互動) 與 `can_pass` (通行) 實現不同行為 (如：撞牆、踩陷阱、撿鑰匙、開門)。
+        *   Agent：透過統一介面 (`get_action`, `learn`)，讓主程式能無縫切換不同演算法。
+    *   **封裝 (Encapsulation)**:
+        *   物件自我管理狀態 (如 `Player` 的 HP、`Agent` 的神經網路參數)，外部僅透過公開方法進行操作。
+        *   利用 `AgentSpec` 集中管理 Agent 建構與環境設定，將模型實作細節從訓練流程中隔離。
+
 
 2.  **自定義 Gymnasium 環境 (Custom Environment)**:
     *   完全符合 Gymnasium API 標準 (`reset`, `step`, `render`)。
@@ -158,8 +165,8 @@ python part3/train.py --mode train --agent DDQN
 # 訓練 Q-Learning
 python part3/train.py --mode train --agent QLearning
 
-# 訓練 PPO（推薦用 batch=64 或 32）
-python part3/train.py --mode train --agent PPO --batch 32
+# 訓練 PPO（範例）
+python part3/train.py --mode train --agent PPO --batch 64
 ```
 
 **進階參數**:

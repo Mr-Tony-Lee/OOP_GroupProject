@@ -72,14 +72,34 @@ class QLearningAgent(Agent):
 
     def get_q_values(self, state):
         """取得狀態對應的 Q 值，不存在則初始化"""
-        state_key = tuple(state)
+        state_key = tuple(self._to_state_tuple(state))
         if state_key not in self.q_table:
             # 如果這個狀態沒遇過，初始化為全 0
             self.q_table[state_key] = np.zeros(self.action_space.n)
         return self.q_table[state_key]
 
+    def _to_state_tuple(self, state):
+        """Convert environment observation into Q-Learning's discrete state tuple."""
+        if isinstance(state, tuple):
+            return state
+        if isinstance(state, list):
+            return tuple(state)
+        if isinstance(state, np.ndarray) and state.ndim >= 3:
+            # Expected channels: (8, H, W)
+            player_pos = np.where(state[1] == 1)
+            if len(player_pos[0]) > 0:
+                row, col = int(player_pos[0][0]), int(player_pos[1][0])
+            else:
+                row, col = 0, 0
+
+            has_key = 1 if state[7, 0, 0] == 1 else 0
+            return (row, col, has_key)
+
+        return tuple(state)
+
     def get_action(self, state, deterministic: bool = False):
         """使用 Epsilon-Greedy 策略選擇動作"""
+        state = self._to_state_tuple(state)
         q_values = self.get_q_values(state)
 
         if deterministic:
@@ -92,6 +112,9 @@ class QLearningAgent(Agent):
 
     def learn(self, state, action, reward, next_state, done):
         """Q-Learning 更新"""
+        state = self._to_state_tuple(state)
+        next_state = self._to_state_tuple(next_state)
+
         state_key = tuple(state)
         next_state_key = tuple(next_state)
         
@@ -620,7 +643,7 @@ class PPOAgent(Agent):
                 critic_loss = (returns - state_values.squeeze()).pow(2).mean()
 
                 # total loss (actor + critic + entropy regularization)
-                total_loss = actor_loss + 0.25 * critic_loss - 0.02 * entropy
+                total_loss = actor_loss + 0.1 * critic_loss - 0.02 * entropy
 
                 # update network
                 self.optimizer.zero_grad()
