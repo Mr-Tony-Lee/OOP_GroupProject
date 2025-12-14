@@ -1,4 +1,4 @@
-# OOP Group Project - Group 32
+# OOP Group Project - Group 3
 
 ## 🌟 專案總覽 (Project Overview)
 
