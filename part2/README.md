@@ -13,8 +13,7 @@
     *   **LessSlipperyFrozenLakeEnv**: 修改自 Gymnasium 的原始環境，降低了冰面滑動的機率，讓 Agent 更容易學習到有效策略。
 
 4. **完整的實驗數據**:
-    *   在 4x4 與 8x8 的滑動地圖上進行測試。
-    *   4x4 Slippery map 成功率穩定在 **74%** 左右。
+    *   在 8x8 的滑動地圖上進行測試。
     *   8x8 Slippery map 成功率穩定在 **63%** 左右。
 
 ## 📂 檔案結構 (File Structure)

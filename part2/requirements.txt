@@ -1,6 +1,4 @@
 gymnasium==1.2.2
 matplotlib==3.10.7
 numpy==2.3.5
-joblib
-optuna
 tqdm==4.67.1
