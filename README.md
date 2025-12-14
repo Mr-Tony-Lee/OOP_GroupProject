@@ -297,6 +297,6 @@ python part3/train.py --mode eval --agent DQN --episodes 50
 
 | 組員 | 學號 | Github username | 負責項目 |
 |------|------|--------|---------------------|
-| 徐子皓 | B124040036 | HaoHao041003 | part3 DQN agent ... |
+| 徐子皓 | B124040036 | HaoHao041003 | part2 optimization/utilities, part3 CNN/DQN agent|
 | 陳彥維 | B123040039 | Shuaige0709 | part3 PPO agent, eval mode, AgentSpec class, UML  |
 | 李承諺 | B123040032 | Mr-Tony-Lee | part2 all, part3 Environment, Item, Game, QLearning/DDQN agent, parser, train/test mode |
