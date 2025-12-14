@@ -8,6 +8,7 @@ import argparse
 from human import human_mode
 from dataclasses import dataclass
 from typing import Callable
+from tqdm import tqdm
 
 
 # ============================================================================
@@ -156,7 +157,7 @@ def train(agent_type="DQN" , episodes=2000 , learning_rate=0.00025, gamma=0.99, 
         event_file.write("Episode, Event\n")
         print(f"Start Training... (Logging to {log_path})")
         best_reward = -float('inf')
-        for episode in range(episodes):
+        for episode in tqdm(range(episodes)):
             state, info = env.reset()
             total_reward = 0
             done = False
@@ -266,7 +267,7 @@ def evaluate(agent, env_id, num_episodes=50, render=False):
     
     episode_rewards = []
     
-    for episode in range(num_episodes):
+    for episode in tqdm(range(num_episodes)):
         state, info = env.reset()
         done = False
         truncated = False
