@@ -13,8 +13,7 @@
     *   **LessSlipperyFrozenLakeEnv**: 修改自 Gymnasium 的原始環境，降低了冰面滑動的機率，讓 Agent 更容易學習到有效策略。
 
 4. **完整的實驗數據**:
-    *   在 4x4 與 8x8 的滑動地圖上進行測試。
-    *   4x4 Slippery map 成功率穩定在 **74%** 左右。
+    *   在 8x8 的滑動地圖上進行測試。
     *   8x8 Slippery map 成功率穩定在 **63%** 左右。
 
 ## 📂 檔案結構 (File Structure)
@@ -63,16 +62,16 @@ pip install -r requirements.txt
 ```bash
 python part2/main.py
 ```
-*   預設使用 `8x8` 地圖，開啟滑動模式，並使用優化過的環境 (`cheating=True`)。
+*   預設使用 `8x8` 地圖，開啟滑動模式 (`cheating=False`)。
 
 **自定義參數範例**:
-在 4x4 地圖上訓練，關閉作弊模式 (使用原始 Gymnasium 環境)：
+在 8x8 地圖上訓練，使用原始 Gymnasium 環境：
 ```bash
 python part2/main.py \
-    --map 4x4 \
+    --map 8x8 \
+    --agent DP
     --runs 10 \
     --cheating False \
-    --train_episodes 15000 \
     --eval_episodes 1000 \
     --is_slippery True \
     --render_mode ansi
@@ -82,6 +81,7 @@ python part2/main.py \
 | :--- | :--- | :--- |
 | `--map` | 8x8 | 地圖大小 (`4x4` 或 `8x8`) |
 | `--runs` | 10 | 實驗重複次數 (取平均用) |
+| `--agent` | QLearning | 使用的 Agent 類型 (`QLearning` 或 `DP`) |
 | `--cheating` | True | 是否使用自定義的 LessSlippery 環境 |
 | `--train_episodes` | 15000 | 訓練回合數 |
 | `--eval_episodes` | 1000 | 評估回合數 |

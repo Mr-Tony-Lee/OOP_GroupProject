@@ -1,5 +1,5 @@
 import argparse
-from Agent import QLearningAgent
+from Agent import DPAgent, QLearningAgent
 import matplotlib.pyplot as plt
 
 def Training(agent, map_name = "8x8", episodes=15000, is_slippery = True, render_mode="ansi", is_cheating=False):
@@ -14,6 +14,11 @@ def Training(agent, map_name = "8x8", episodes=15000, is_slippery = True, render
     """  
     if agent == "QLearning":
         agent = QLearningAgent(map_name=map_name, episodes=episodes, is_training=True, is_slippery=is_slippery, render_mode=render_mode, is_cheating=is_cheating)
+    elif agent == "DP":
+        agent = DPAgent(map_name=map_name, episodes=episodes, is_training=True, is_slippery=is_slippery, render_mode=render_mode, is_cheating=is_cheating)
+    else:
+        raise ValueError("Unsupported agent type.")
+    
     print(f"Training {map_name}...")
     agent.run()
 
@@ -29,6 +34,11 @@ def Evaluation(agent, map_name = "8x8", episodes=1000, is_slippery = True, rende
     """
     if agent == "QLearning":
         agent = QLearningAgent(map_name=map_name, episodes=episodes, is_training=False, is_slippery=is_slippery, render_mode=render_mode, is_cheating=is_cheating)
+    elif agent == "DP":
+        agent = DPAgent(map_name=map_name, episodes=episodes, is_training=False, is_slippery=is_slippery, render_mode=render_mode, is_cheating=is_cheating)
+    else:
+        raise ValueError("Unsupported agent type.")
+    
     print(f"\nEvaluating {map_name}...")
     success_rate = agent.run()
     return success_rate
@@ -53,6 +63,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--map", type=str, default="8x8", help="Map name")
+    parser.add_argument("--agent", type=str, default="QLearning",choices=["QLearning", "DP", "SARSA"] ,help="Agent type (QLearning, DP, SARSA)")
     parser.add_argument("--runs", type=int, default=10, help="Number of runs")
     parser.add_argument("--train_episodes", type=int, default=15000, help="Number of training episodes")
     parser.add_argument("--eval_episodes", type=int, default=1000, help="Number of evaluation episodes")
@@ -60,8 +71,12 @@ if __name__ == "__main__":
     parser.add_argument("--render_mode", type=str, default="ansi", help="Render mode for the environment")
     parser.add_argument("--cheating", type=str, default="false", help="Enable cheating environment")
     args = parser.parse_args()
-
+    # uv run ./main.py --map 8x8 --agent QLearning --runs 10 --train_episodes 15000 --eval_episodes 1000 --is_slippery True --render_mode ansi --cheating false
+    # uv run ./main.py --map 8x8 --agent DP --runs 10 --train_episodes 15000 --eval_episodes 1000 --is_slippery True --render_mode ansi --cheating false
+    # uv run ./main.py --map 8x8 --agent SARSA --runs 10 --train_episodes 15000 --eval_episodes 1000 --is_slippery True --render_mode ansi --cheating false
+    
     map_name = args.map
+    agent_type = args.agent
     num_runs = args.runs
     train_episodes = args.train_episodes
     eval_episodes = args.eval_episodes
@@ -73,10 +88,10 @@ if __name__ == "__main__":
         print(f"--- Run {i+1}/{num_runs} ---")
 
         # Train 8x8
-        Training("QLearning", map_name=map_name, episodes=train_episodes, is_slippery=is_slippery, render_mode=render_mode, is_cheating=CheatingEnv)
+        Training(agent_type, map_name=map_name, episodes=train_episodes, is_slippery=is_slippery, render_mode=render_mode, is_cheating=CheatingEnv)
         
         # Evaluate 8x8
-        success_rate = Evaluation("QLearning", map_name=map_name, episodes=eval_episodes, is_slippery=is_slippery, render_mode=render_mode, is_cheating=CheatingEnv)
+        success_rate = Evaluation(agent_type, map_name=map_name, episodes=eval_episodes, is_slippery=is_slippery, render_mode=render_mode, is_cheating=CheatingEnv)
         success_rates.append(success_rate)
 
     plot_results(map_name, success_rates, num_runs)

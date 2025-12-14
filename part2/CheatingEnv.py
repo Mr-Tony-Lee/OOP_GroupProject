@@ -17,6 +17,7 @@ class LessSlipperyFrozenLakeEnv(FrozenLakeEnv):
         建立新的轉移機率矩陣。
         - intended_prob: 預期動作成功的機率 (例如 0.5)
         - side_prob: 轉向兩側的機率 ( (1 - intended_prob) / 2 )
+        # 轉向兩側 -> 例如：向左走時，有機率向上或向下滑動
         """
         # P 是一個字典，鍵是狀態，值是動作的轉移列表
         new_P = {}
