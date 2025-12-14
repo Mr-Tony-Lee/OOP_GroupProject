@@ -2,15 +2,17 @@
 skinparam classAttributeIconSize 0
 
 ' ===== Captions =====
-' <|-- : bolded arrow for inheritance (is-a relationship)
-' ..> : dashed arrow for association (uses/has-a relationship)
+' <|-- : inheritance (is-a)
+' ..>  : dependency (uses)
+' -->  : association
+' *--  : composition (owns)
 
-' + : public method/attribute
-' # : protected method/attribute
+' + : public
+' # : protected
 
 ' ===== Agents =====
 abstract class Agent {
-  +get_action(state, deterministic=false)
+  +get_action(state, deterministic: bool = false)
   +learn(...)
   +save(path)
   +load(path)
@@ -37,14 +39,15 @@ class AgentSpec {
   +build : Callable
 }
 
-AgentSpec ..> Agent : creates >
+AgentSpec ..> Agent : creates
 
 ' ===== Environment =====
 abstract class DungeonCrawlerEnv {
   +reset()
   +step(action)
   +render()
-  #{abstract} _get_obs()
+  #_get_obs() : Observation
+  #_define_observation_space()
 }
 
 class CNNDungeonEnv
@@ -55,12 +58,18 @@ DungeonCrawlerEnv <|-- CNNDungeonEnv
 DungeonCrawlerEnv <|-- DQNDungeonEnv
 DungeonCrawlerEnv <|-- PPODungeonEnv
 
-DungeonCrawlerEnv ..> Agent : interacts
+' Core encapsulated game state/logic
+class DungeonGame
+DungeonCrawlerEnv *-- DungeonGame : owns
+
+DungeonCrawlerEnv --> Agent : interacts
 
 ' ===== Game Objects =====
 abstract class GameObject {
   +row : int
   +col : int
+  +can_pass(player) : bool
+  +on_enter(player)
 }
 
 class Character
@@ -71,9 +80,7 @@ GameObject <|-- Character
 Character <|-- Player
 Character <|-- Enemy
 
-abstract class Item {
-  +apply(player)
-}
+abstract class Item
 
 class Key
 class Treasure
@@ -88,6 +95,7 @@ Item <|-- Trap
 GameObject <|-- Door
 GameObject <|-- Wall
 
-Player --> Item : picks/steps on
+Player --> GameObject : steps on / interacts
+Player --> Item : picks up / triggers
 
 @enduml
