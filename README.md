@@ -1,25 +1,34 @@
-# OOP Group Project - Group 3
+# OOP x RL Group Project
 
-## 🌟 專案總覽 (Project Overview)
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white)
+![Gymnasium](https://img.shields.io/badge/Gymnasium-1.2.2-0081A5?style=flat-square&logo=gymnasium&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)
+![Pygame](https://img.shields.io/badge/Pygame-2.6.1-2A75B3?style=flat-square&logo=python&logoColor=white)
+![Reinforcement Learning](https://img.shields.io/badge/Reinforcement%20Learning-6A5ACD?style=flat-square)
+![Object-Oriented Programming](https://img.shields.io/badge/Object--Oriented%20Programming-0F766E?style=flat-square)
+
+## 專案總覽 (Project Overview)
 
 本專案分為兩個部分：
+- [Frozen Lake RL Project](#1-frozen-lake-rl-project)
+- [Dungeon Crawler (主要專案)](#2-dungeon-crawler-rl-project)
 
-### 1. Frozen Lake RL Project (Part 2)
+### 1. Frozen Lake RL Project
 
-#### 📂 檔案結構 (File Structure)
+#### 檔案結構
 
-位於 `part2/` 資料夾下：
+位於 [`frozen_lake/`](frozen_lake/) 資料夾下：
 
 *   **`Agent.py`**: 核心邏輯。包含 `QLearningAgent` 類別，負責 Q-Table 的更新與動作選擇。
 *   **`CheatingEnv.py`**: 自定義環境。包含 `LessSlipperyFrozenLakeEnv`，提供更友善的學習環境。
 *   **`main.py`**: 主程式。負責解析參數、執行訓練迴圈、評估並儲存結果。
 *   **`Result/`**: 存放訓練結果圖表與數據。
 
-#### 📦 安裝需求 (Requirements) && dependencies
+#### Requirements && dependencies
 
 請確保安裝以下 Python 套件：
 ```
-part2
+frozen_lake
 ├── gymnasium v1.2.2
 │   ├── cloudpickle v3.1.2
 │   ├── farama-notifications v0.0.4
@@ -39,25 +48,25 @@ part2
         └── six v1.17.0
 ```
 ```bash
-pip install -r requirements.txt
+pip install -r frozen_lake/requirements.txt
 ```
 
-#### 🚀 如何執行 (How to Run)
+#### 如何執行
 
 所有操作都可以透過 `main.py` 執行，支援豐富的命令列參數 (CLI)。
 
-##### 1. 訓練與評估 (Train & Evaluate)
+##### 1. 訓練與評估
 
 **基本指令 (預設設定)**:
 ```bash
-python part2/main.py
+python frozen_lake/main.py
 ```
 *   預設使用 `8x8` 地圖，開啟滑動模式，並使用優化過的環境 (`cheating=True`)。
 
 **自定義參數範例**:
 在 4x4 地圖上訓練，關閉作弊模式 (使用原始 Gymnasium 環境)：
 ```bash
-python part2/main.py \
+python frozen_lake/main.py \
     --map 4x4 \
     --runs 10 \
     --cheating False \
@@ -77,20 +86,20 @@ python part2/main.py \
 | `--is_slippery` | True | 是否開啟滑動模式 |
 | `--render_mode` | ansi | 渲染模式 (`ansi` 文字模式 或 `human` 視窗模式) |
 
-##### 2. 查看幫助 (Help)
-查看所有可用的參數說明：
+##### 2. 如何查看可用的參數說明
 ```bash
-python part2/main.py --help
+python frozen_lake/main.py --help
 ```
 --- 
 
-### 2. Dungeon Crawler RL Project (Part 3)
+### 2. Dungeon Crawler RL Project
 
-> 📌 **UML 類別圖**：[part3/uml/class_diagram.png](part3/uml/class_diagram.png)
+#### UML 類別圖
+![Dungeon Crawler UML 類別圖](dungeon_crawler/uml/class_diagram.png)
 
-#### 📂 檔案結構 (File Structure)
+#### 檔案結構
 
-位於 `part3/` 資料夾下：
+位於 [`dungeon_crawler/`](dungeon_crawler/) 資料夾下：
 
 *   **`dungeon_game.py`**: 遊戲核心邏輯 (Pygame)。包含所有類別 (`GameObject`, `Player`, `Enemy` 等) 與遊戲迴圈。
 *   **`dungeon_env.py`**: Gymnasium 環境封裝。將遊戲包裝成標準 RL 環境。
@@ -98,134 +107,57 @@ python part2/main.py --help
 *   **`train.py`**: 統一的訓練與測試入口。支援命令列參數 (CLI) 來調整訓練設定。
 *   **`human.py`**: 人類手動試玩腳本。
 
-#### 📦 安裝需求 (Requirements) && Dependencies
+#### Requirements && Dependencies
 
 請確保安裝以下 Python 套件：
 
 ```
-part3
+dungeon_crawler
 ├── gymnasium v1.2.2
-│   ├── cloudpickle v3.1.2
-│   ├── farama-notifications v0.0.4
-│   ├── numpy v2.3.5
-│   └── typing-extensions v4.15.0
 ├── matplotlib v3.10.7
-│   ├── contourpy v1.3.3
-│   │   └── numpy v2.3.5
-│   ├── cycler v0.12.1
-│   ├── fonttools v4.61.0
-│   ├── kiwisolver v1.4.9
-│   ├── numpy v2.3.5
-│   ├── packaging v25.0
-│   ├── pillow v12.0.0
-│   ├── pyparsing v3.2.5
-│   └── python-dateutil v2.9.0.post0
-│       └── six v1.17.0
+├── numpy v2.3.5
 ├── pygame v2.6.1
-├── tensorflow v2.20.0
-│   ├── absl-py v2.3.1
-│   ├── astunparse v1.6.3
-│   │   ├── six v1.17.0
-│   │   └── wheel v0.45.1
-│   ├── flatbuffers v25.9.23
-│   ├── gast v0.7.0
-│   ├── google-pasta v0.2.0
-│   │   └── six v1.17.0
-│   ├── grpcio v1.76.0
-│   │   └── typing-extensions v4.15.0
-│   ├── h5py v3.15.1
-│   │   └── numpy v2.3.5
-│   ├── keras v3.12.0
-│   │   ├── absl-py v2.3.1
-│   │   ├── h5py v3.15.1 (*)
-│   │   ├── ml-dtypes v0.5.4
-│   │   │   └── numpy v2.3.5
-│   │   ├── namex v0.1.0
-│   │   ├── numpy v2.3.5
-│   │   ├── optree v0.18.0
-│   │   │   └── typing-extensions v4.15.0
-│   │   ├── packaging v25.0
-│   │   └── rich v14.2.0
-│   │       ├── markdown-it-py v4.0.0
-│   │       │   └── mdurl v0.1.2
-│   │       └── pygments v2.19.2
-│   ├── libclang v18.1.1
-│   ├── ml-dtypes v0.5.4 (*)
-│   ├── numpy v2.3.5
-│   ├── opt-einsum v3.4.0
-│   ├── packaging v25.0
-│   ├── protobuf v6.33.2
-│   ├── requests v2.32.5
-│   │   ├── certifi v2025.11.12
-│   │   ├── charset-normalizer v3.4.4
-│   │   ├── idna v3.11
-│   │   └── urllib3 v2.6.1
-│   ├── setuptools v80.9.0
-│   ├── six v1.17.0
-│   ├── tensorboard v2.20.0
-│   │   ├── absl-py v2.3.1
-│   │   ├── grpcio v1.76.0 (*)
-│   │   ├── markdown v3.10
-│   │   ├── numpy v2.3.5
-│   │   ├── packaging v25.0
-│   │   ├── pillow v12.0.0
-│   │   ├── protobuf v6.33.2
-│   │   ├── setuptools v80.9.0
-│   │   ├── tensorboard-data-server v0.7.2
-│   │   └── werkzeug v3.1.4
-│   │       └── markupsafe v3.0.3
-│   ├── termcolor v3.2.0
-│   ├── typing-extensions v4.15.0
-│   └── wrapt v2.0.1
-└── torch v2.9.1
-    ├── filelock v3.20.0
-    ├── fsspec v2025.12.0
-    ├── jinja2 v3.1.6
-    │   └── markupsafe v3.0.3
-    ├── networkx v3.6.1
-    ├── setuptools v80.9.0
-    ├── sympy v1.14.0
-    │   └── mpmath v1.3.0
-    └── typing-extensions v4.15.0
+├── torch v2.9.1
+└── tqdm v4.67.1
 ```
 
 ```bash
-pip install -r requirements.txt
+pip install -r dungeon_crawler/requirements.txt
 ```
 
-#### 🚀 如何執行 (How to Run)
+#### 如何執行
 
 所有操作都可以透過 `train.py` 或特定腳本執行。
 
-##### 1. 手動試玩 (Human Play)
+##### 1. 手動試玩
 親自挑戰這個 11x12 的複雜迷宮！
 *   **操作**：方向鍵移動，`R` 重置，`ESC` 離開。
 *   **目標**：避開怪物與陷阱 -> 拿到鑰匙 (K) -> 打開門 (D) -> 取得寶藏 (T)。
 
 ```bash
 # 方法一：使用 human.py
-python part3/human.py
+python dungeon_crawler/human.py
 
 # 方法二：使用 train.py
-python part3/train.py --mode human
+python dungeon_crawler/train.py --mode human
 ```
 
-##### 2. 訓練 AI (Train Agent)
+##### 2. Train Agent
 讓 AI 從零開始學習。程式會顯示訓練日誌並定期儲存模型。
 
 **基本指令**:
 ```bash
 # 訓練 Standard DQN
-python part3/train.py --mode train --agent DQN
+python dungeon_crawler/train.py --mode train --agent DQN
 
 # 訓練 Double DQN (推薦)
-python part3/train.py --mode train --agent DDQN
+python dungeon_crawler/train.py --mode train --agent DDQN
 
 # 訓練 Q-Learning
-python part3/train.py --mode train --agent QLearning
+python dungeon_crawler/train.py --mode train --agent QLearning
 
 # 訓練 PPO（範例）
-python part3/train.py --mode train --agent PPO --batch 64
+python dungeon_crawler/train.py --mode train --agent PPO --batch 64
 ```
 
 **進階參數**:
@@ -269,23 +201,23 @@ usage: train.py [-h] [--agent {QLearning,DDQN,DQN,PPO}] [--episodes EPISODES] [-
 | `--policy_clip` | 0.2 | (PPO) Clip epsilon |
 | `--n_epochs` | 10 | (PPO) 每次更新的 epoch 數 |
 
-##### 3. 測試模型 (Test Agent)
+##### 3. Test Agent
 載入訓練好的模型 (`final_model`) 並觀看 AI 實際遊玩。
 
 ```bash
-python part3/train.py --mode test --agent DDQN
+python dungeon_crawler/train.py --mode test --agent DDQN
 ```
-*   注意：測試模式會讀取 `Result/{agent}/result/final_model.pth`，請先確保訓練完成。
+*   注意：測試模式會讀取 `dungeon_crawler/Result/{agent}/result/final_model.pth`，請先確保訓練完成。
 
-##### 4. 評估模型 (Eval Mode)
+##### 4. 評估模型
 使用確定性策略（貪婪動作）跑多個 episodes，計算平均與標準差，適合比較不同超參或演算法的最終表現。
 
 ```bash
 # 評估 PPO，跑 50 回合（預設）
-python part3/train.py --mode eval --agent PPO --episodes 50
+python dungeon_crawler/train.py --mode eval --agent PPO --episodes 50
 
 # 也可套用到其他 agent（會使用各自的貪婪策略）
-python part3/train.py --mode eval --agent DQN --episodes 50
+python dungeon_crawler/train.py --mode eval --agent DQN --episodes 50
 ```
 
 *   輸出格式：`Mean Reward: <平均> ± <標準差>`。
@@ -293,10 +225,10 @@ python part3/train.py --mode eval --agent DQN --episodes 50
 
 ---
 
-## 👥 工作分工 (Contribution List)
+## Contribution List
 
 | 組員 | 學號 | Github username | 負責項目 |
 |------|------|--------|---------------------|
-| 徐子皓 | B124040036 | HaoHao041003 | part2 optimization/utilities, part3 CNN/DQN agent, reflection report|
-| 陳彥維 | B123040039 | Shuaige0709 | part3 PPO agent, eval mode, AgentSpec class, UML, demo slide|
-| 李承諺 | B123040032 | Mr-Tony-Lee | part2 all, part3 Environment, Item, Game, QLearning/DDQN agent, parser, train/test mode |
+| 徐子皓 | B124040036 | HaoHao041003 | Frozen Lake optimization/utilities, Dungeon Crawler CNN/DQN agent, reflection report|
+| 陳彥維 | B123040039 | Shuaige0709 | Dungeon Crawler PPO agent, eval mode, AgentSpec class, UML, demo slide|
+| 李承諺 | B123040032 | Mr-Tony-Lee | Frozen Lake project, Dungeon Crawler environment, items, game, Q-Learning/DDQN agent, parser, train/test mode |
